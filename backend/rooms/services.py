@@ -1,6 +1,7 @@
 import random
 import string
 from .models import Room, RoomParticipant
+from django.shortcuts import get_object_or_404
 
 
 def generate_room_code(length=6):
@@ -36,3 +37,40 @@ def create_room(*, host, is_private, entry_mode):
     )
 
     return room, raw_password
+
+def join_room(*, room_code, user, password=None):
+    room = get_object_or_404(Room, code=room_code)
+
+    # Already joined → return success
+    participant = RoomParticipant.objects.filter(room=room, user=user).first()
+    if participant:
+        return participant, room
+
+    # PUBLIC ROOM
+    if not room.is_private:
+        participant = RoomParticipant.objects.create(
+            room=room,
+            user=user,
+            status=RoomParticipant.STATUS_APPROVED,
+        )
+        return participant, room
+
+    # PRIVATE ROOM
+    if room.entry_mode == Room.ENTRY_PASSWORD:
+        if not password or not room.check_entry_password(password):
+            raise ValueError("Invalid room password")
+
+        participant = RoomParticipant.objects.create(
+            room=room,
+            user=user,
+            status=RoomParticipant.STATUS_APPROVED,
+        )
+        return participant, room
+
+    # APPROVAL ROOM
+    participant = RoomParticipant.objects.create(
+        room=room,
+        user=user,
+        status=RoomParticipant.STATUS_PENDING,
+    )
+    return participant, room
