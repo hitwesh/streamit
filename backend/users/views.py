@@ -1,29 +1,12 @@
-from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from rest_framework_simplejwt.tokens import AccessToken
+
 from .models import User
 import json
-import uuid
 
-@csrf_exempt
-@require_POST
-def login_view(request):
-    data = json.loads(request.body)
-    email = data.get("email")
-    password = data.get("password")
-
-    user = authenticate(request, username=email, password=password)
-    if user is None:
-        return JsonResponse({"error": "Invalid credentials"}, status=401)
-
-    login(request, user)
-    return JsonResponse({
-        "id": str(user.id),
-        "display_name": user.display_name,
-        "is_guest": user.is_guest,
-    })
 
 @csrf_exempt
 @require_POST
@@ -37,17 +20,24 @@ def login_view(request):
         return JsonResponse({"error": "Invalid credentials"}, status=401)
 
     login(request, user)
+
+    # 🔐 JWT for WebSocket & API auth
+    token = AccessToken.for_user(user)
+
     return JsonResponse({
         "id": str(user.id),
         "display_name": user.display_name,
         "is_guest": user.is_guest,
+        "access_token": str(token),
     })
+
 
 @csrf_exempt
 @require_POST
 def logout_view(request):
     logout(request)
     return JsonResponse({"success": True})
+
 
 @csrf_exempt
 @require_POST
@@ -67,8 +57,11 @@ def guest_login_view(request):
 
     login(request, user)
 
+    token = AccessToken.for_user(user)
+
     return JsonResponse({
         "id": str(user.id),
         "display_name": user.display_name,
         "is_guest": True,
+        "access_token": str(token),
     })
