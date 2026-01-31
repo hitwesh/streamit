@@ -72,13 +72,41 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         if not event_type:
             return
 
-        # Chat is allowed for everyone
+    # ---------------- CHAT ----------------
         if event_type == "CHAT_MESSAGE":
+            if not self.room.is_chat_enabled:
+                await self.send(text_data=json.dumps({
+                    "type": "ERROR",
+                    "error": "Chat is disabled",
+                }))
+                return
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "room_event",
-                    "event": data,
+                    "event": {
+                        "type": "CHAT_MESSAGE",
+                        "user": self.user.display_name,
+                        "message": data.get("message", ""),
+                    },
+                }
+            )
+            return
+
+        # ---------------- PLAYBACK (HOST ONLY) ----------------
+        if event_type in {"PLAY", "PAUSE", "SEEK"}:
+            if self.user.id != self.room.host_id:
+                return  # silently ignore
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "room_event",
+                    "event": {
+                        "type": event_type,
+                        "time": data.get("time"),
+                    },
                 }
             )
             return
@@ -88,13 +116,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             if self.user.id != self.room.host_id:
                 # Not host → ignore
                 return
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "room_event",
-                "event": data,
-            }
-        )
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "room_event",
+                    "event": data,
+                }
+            )
 
     async def user_joined(self, event):
         await self.send(text_data=json.dumps({
