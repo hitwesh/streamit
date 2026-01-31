@@ -39,6 +39,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        await self.broadcast_participants()
+
         messages = await self.get_recent_messages()
 
         await self.send(text_data=json.dumps({
@@ -84,6 +86,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name,
             )
+
+            await self.broadcast_participants()
 
     async def send_error(self, message):
         await self.send(text_data=json.dumps({
@@ -166,6 +170,25 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         """
         await self.send(text_data=json.dumps(event["event"]))
 
+    async def room_participants(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "ROOM_PARTICIPANTS",
+            "participants": event["participants"],
+            "host": event["host"],
+        }))
+
+    async def broadcast_participants(self):
+        payload = await self.get_participant_payload()
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "room_participants",
+                "participants": payload["participants"],
+                "host": payload["host"],
+            }
+        )
+
     # ---------- DB helpers ----------
 
     @database_sync_to_async
@@ -213,3 +236,25 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         state.is_playing = is_playing
         state.current_time = time
         state.save()
+
+    @database_sync_to_async
+    def get_participant_payload(self):
+        participants = list(
+            RoomParticipant.objects
+            .filter(room=self.room, status=RoomParticipant.STATUS_APPROVED)
+            .select_related("user")
+            .values_list("user__display_name", flat=True)
+        )
+
+        host_name = (
+            Room.objects
+            .select_related("host")
+            .get(id=self.room.id)
+            .host
+            .display_name
+        )
+
+        return {
+            "participants": participants,
+            "host": host_name,
+        }
