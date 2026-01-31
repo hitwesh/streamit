@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from chat.models import ChatMessage
 
 from rooms.models import Room, RoomParticipant
 
@@ -37,6 +38,20 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        messages = await self.get_recent_messages()
+
+        await self.send(text_data=json.dumps({
+            "type": "CHAT_HISTORY",
+            "messages": [
+                {
+                    "user": m.user.display_name,
+                    "message": m.message,
+                    "created_at": m.created_at.isoformat(),
+                }
+                for m in messages
+            ]
+        }))
 
         # 5️⃣ Notify presence
         await self.channel_layer.group_send(
@@ -81,6 +96,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
+            message_text = data.get("message", "").strip()
+            if not message_text:
+                return
+
+            await self.save_message(message_text)
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -88,7 +109,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                     "event": {
                         "type": "CHAT_MESSAGE",
                         "user": self.user.display_name,
-                        "message": data.get("message", ""),
+                        "message": message_text,
                     },
                 }
             )
@@ -158,3 +179,20 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             user=self.user,
             status=RoomParticipant.STATUS_APPROVED,
         ).exists()
+
+    @database_sync_to_async
+    def save_message(self, text):
+        ChatMessage.objects.create(
+            room=self.room,
+            user=self.user,
+            message=text,
+        )
+
+    @database_sync_to_async
+    def get_recent_messages(self, limit=50):
+        return list(
+            ChatMessage.objects
+            .filter(room=self.room)
+            .select_related("user")
+            .order_by("-created_at")[:limit]
+        )[::-1]
