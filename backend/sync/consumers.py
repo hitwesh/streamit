@@ -77,6 +77,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 self.channel_name,
             )
 
+    async def send_error(self, message):
+        await self.send(text_data=json.dumps({
+            "type": "ERROR",
+            "message": message,
+        }))
+
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
@@ -90,10 +96,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
     # ---------------- CHAT ----------------
         if event_type == "CHAT_MESSAGE":
             if not self.room.is_chat_enabled:
-                await self.send(text_data=json.dumps({
-                    "type": "ERROR",
-                    "error": "Chat is disabled",
-                }))
+                await self.send_error("Chat is disabled in this room")
                 return
 
             message_text = data.get("message", "").strip()
@@ -131,19 +134,6 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
-
-        # Playback events → host only
-        if event_type in {"PLAY", "PAUSE", "SEEK"}:
-            if self.user.id != self.room.host_id:
-                # Not host → ignore
-                return
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "room_event",
-                    "event": data,
-                }
-            )
 
     async def user_joined(self, event):
         await self.send(text_data=json.dumps({
