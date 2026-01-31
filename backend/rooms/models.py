@@ -67,6 +67,17 @@ class Room(models.Model):
     def __str__(self):
         return f"Room {self.code}"
 
+
+class RoomPlaybackState(models.Model):
+    room = models.OneToOneField(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="playback_state"
+    )
+    is_playing = models.BooleanField(default=False)
+    current_time = models.FloatField(default=0.0)
+    updated_at = models.DateTimeField(auto_now=True)
+
 class RoomParticipant(models.Model):
     STATUS_PENDING = "PENDING"
     STATUS_APPROVED = "APPROVED"

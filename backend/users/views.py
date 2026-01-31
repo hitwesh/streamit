@@ -19,7 +19,11 @@ def login_view(request):
     if user is None:
         return JsonResponse({"error": "Invalid credentials"}, status=401)
 
-    login(request, user)
+    login(
+        request,
+        user,
+        backend="django.contrib.auth.backends.ModelBackend"
+    )
 
     # 🔐 JWT for WebSocket & API auth
     token = AccessToken.for_user(user)
@@ -55,7 +59,11 @@ def guest_login_view(request):
         is_guest=True,
     )
 
-    login(request, user)
+    login(
+        request,
+        user,
+        backend="django.contrib.auth.backends.ModelBackend"
+    )
 
     token = AccessToken.for_user(user)
 
