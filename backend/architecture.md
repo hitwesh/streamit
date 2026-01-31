@@ -1,6 +1,7 @@
 # Backend Architecture
 
-Date: January 31, 2026
+> This document reflects the backend state as of Jan 31, 2026.
+> It may evolve as features are added.
 
 ## Overview
 This backend is a Django 4.2 project with Django REST Framework for HTTP APIs and Django Channels (ASGI) for real-time WebSocket communication. Authentication uses a custom `User` model with email/password and guest accounts, a custom email auth backend, plus JWT tokens for API/WebSocket access. WebSockets use Redis as the channel layer backend.
