@@ -16,7 +16,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             return
 
         # 2️⃣ Room existence
-        room = await self.get_room()
+        self.room = await self.get_room()
+        room = self.room
         if not room:
             await self.close(code=4002)
             return
@@ -61,6 +62,40 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 self.channel_name,
             )
 
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return
+
+        event_type = data.get("type")
+        if not event_type:
+            return
+
+        # Chat is allowed for everyone
+        if event_type == "CHAT_MESSAGE":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "room_event",
+                    "event": data,
+                }
+            )
+            return
+
+        # Playback events → host only
+        if event_type in {"PLAY", "PAUSE", "SEEK"}:
+            if self.user.id != self.room.host_id:
+                # Not host → ignore
+                return
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "room_event",
+                "event": data,
+            }
+        )
+
     async def user_joined(self, event):
         await self.send(text_data=json.dumps({
             "type": "USER_JOINED",
@@ -72,6 +107,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "type": "USER_LEFT",
             "user": event["user"],
         }))
+
+    async def room_event(self, event):
+        """
+        Send room events to WebSocket
+        """
+        await self.send(text_data=json.dumps(event["event"]))
 
     # ---------- DB helpers ----------
 
