@@ -27,6 +27,13 @@ This file is treated as a **contract** for backend behavior.
 
 ## 2026-02-01 — Room State Synchronization (STABLE)
 
+### Documentation (PROCESS)
+**Manual end-to-end testing reference added**
+- Added a gold-reference manual testing guide at `docs/manual-testing.md`.
+- Captures the required E2E flow using PowerShell (HTTP) and `wscat` (WebSockets), including expected outputs.
+- Explicitly documents first-run DB initialization ordering (`makemigrations` → `migrate`) and the typical fresh-clone shortcut (`migrate` only) since migrations are committed.
+- Documents superuser creation as the default “host/admin” account for manual testing.
+
 ### Feature
 **Room playback state sync on join**
 - New participants receive the current playback state immediately on WebSocket connect.

@@ -29,6 +29,29 @@ StreamIt is a single Django project that serves:
 HTTP traffic is handled by Django (WSGI/ASGI), while real-time events are handled by Django Channels (ASGI) with Redis for fan-out. WebSocket authentication is JWT-based using a custom middleware that validates the token from the query string.
 
 ## Setup Instructions
+### Database initialization (first run)
+
+Run these commands **in this exact order** when setting up the backend database.
+
+Run from `backend/`:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+What each does:
+- `makemigrations` → generates migration files (schema intent)
+- `migrate` → applies schema to the database
+
+⚠️ Note: this repository already contains migrations. On a fresh setup, running:
+
+```bash
+python manage.py migrate
+```
+
+is usually enough.
+
 1. Create and activate a virtual environment.
 2. Install dependencies:
    ```bash
@@ -38,10 +61,13 @@ HTTP traffic is handled by Django (WSGI/ASGI), while real-time events are handle
    ```bash
    python manage.py migrate
    ```
-4. (Optional) Create an admin user:
+4. (Recommended) Create a superuser (admin):
    ```bash
    python manage.py createsuperuser
    ```
+  Notes:
+  - This project uses a custom `User` model.
+  - Superusers default to `display_name="Admin"` (used in examples and manual testing).
 5. Start the development server:
    ```bash
    python manage.py runserver
