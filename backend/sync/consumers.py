@@ -24,6 +24,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
 
+        if not room.is_active:
+            await self.close(code=4005)
+            return
+
         if room.grace_expired():
             await self.close(code=4004)
             return
@@ -196,6 +200,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "HOST_RECONNECTED"
         }))
+
+    async def room_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "ROOM_DELETED"
+        }))
+        await self.close()
 
     async def room_event(self, event):
         """

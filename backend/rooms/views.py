@@ -7,9 +7,14 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
 import json
 
-from .models import Room
+from .models import Room, RoomParticipant
 from .services import create_room
 from .services import create_room, join_room
 
@@ -98,3 +103,22 @@ def approve_participant_view(request):
     participant.save()
 
     return JsonResponse({"approved": True})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def delete_room_view(request):
+    room_id = request.data.get("room_id")
+
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found"}, status=404)
+
+    if room.host != request.user:
+        return Response({"error": "Only host can delete room"}, status=403)
+
+    room.is_active = False
+    room.save(update_fields=["is_active"])
+
+    return Response({"status": "room_deleted"})

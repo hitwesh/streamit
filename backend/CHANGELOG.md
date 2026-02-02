@@ -45,6 +45,16 @@ Host disconnect grace handling for rooms.
 - No async ORM access in consumers.
 - Grace timing is server-enforced.
 
+### Added
+- Host can permanently delete a room via explicit API call.
+- Room deletion immediately disconnects all participants.
+- During host grace period, chat remains enabled for participants.
+
+### Guarantees
+- Room deletion is explicit and irreversible.
+- Grace period does not restrict chat.
+- Playback control remains host-only.
+
 ## 2026-02-01 — Room State Synchronization (STABLE)
 
 ### Documentation (PROCESS)
