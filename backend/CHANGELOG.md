@@ -25,6 +25,26 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-02 — Host Grace Period & Room Persistence (STABLE)
+
+### Feature
+Host disconnect grace handling for rooms.
+
+### Behavior
+- When the host disconnects, the room enters a grace period (10 minutes).
+- Playback freezes; participants remain connected.
+- Host may reconnect using the same room code to resume the session.
+- If grace expires, the room is permanently closed.
+
+### Guarantees
+- Rooms are never destroyed due to transient network failures.
+- Reconnecting within grace restores playback and presence.
+- No in-memory room state; database is authoritative.
+
+### Constraints
+- No async ORM access in consumers.
+- Grace timing is server-enforced.
+
 ## 2026-02-01 — Room State Synchronization (STABLE)
 
 ### Documentation (PROCESS)

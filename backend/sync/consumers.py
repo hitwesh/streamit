@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.utils import timezone
 from chat.models import ChatMessage
 
 from rooms.models import Room, RoomParticipant
@@ -23,6 +24,20 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
 
+        if room.grace_expired():
+            await self.close(code=4004)
+            return
+
+        self.room_group_name = f"room_{room.code}"
+
+        if self.user.id == room.host_id and room.is_in_grace():
+            await self.clear_grace()
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "host_reconnected"}
+            )
+
         # 3️⃣ Participant approval
         is_allowed = await self.is_approved_participant(room)
         if not is_allowed:
@@ -30,8 +45,6 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             return
 
         # 4️⃣ Join room group
-        self.room_group_name = f"room_{room.code}"
-
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name,
@@ -74,20 +87,29 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "user_left",
-                    "user": self.user.display_name,
-                }
-            )
+            if self.user.id == self.room.host_id:
+                await self.mark_host_disconnected()
+
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "host_disconnected",
+                        "grace_seconds": Room.GRACE_PERIOD_SECONDS,
+                    }
+                )
+            else:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_left",
+                        "user": self.user.display_name,
+                    }
+                )
 
             await self.channel_layer.group_discard(
                 self.room_group_name,
                 self.channel_name,
             )
-
-            await self.broadcast_participants()
 
     async def send_error(self, message):
         await self.send(text_data=json.dumps({
@@ -164,6 +186,17 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "user": event["user"],
         }))
 
+    async def host_disconnected(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "HOST_DISCONNECTED",
+            "grace_seconds": event["grace_seconds"],
+        }))
+
+    async def host_reconnected(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "HOST_RECONNECTED"
+        }))
+
     async def room_event(self, event):
         """
         Send room events to WebSocket
@@ -236,6 +269,16 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         state.is_playing = is_playing
         state.current_time = time
         state.save()
+
+    @database_sync_to_async
+    def mark_host_disconnected(self):
+        self.room.host_disconnected_at = timezone.now()
+        self.room.save(update_fields=["host_disconnected_at"])
+
+    @database_sync_to_async
+    def clear_grace(self):
+        self.room.host_disconnected_at = None
+        self.room.save(update_fields=["host_disconnected_at"])
 
     @database_sync_to_async
     def get_participant_payload(self):

@@ -2,10 +2,11 @@ from django.db import models
 
 # Create your models here.
 import uuid
-from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.contrib.auth.hashers import make_password, check_password
+from datetime import timedelta
 
 User = settings.AUTH_USER_MODEL
 
@@ -49,6 +50,21 @@ class Room(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+
+    # NEW
+    host_disconnected_at = models.DateTimeField(null=True, blank=True)
+
+    GRACE_PERIOD_SECONDS = 600  # 10 minutes
+
+    def is_in_grace(self):
+        if not self.host_disconnected_at:
+            return False
+        return timezone.now() < self.host_disconnected_at + timedelta(seconds=self.GRACE_PERIOD_SECONDS)
+
+    def grace_expired(self):
+        if not self.host_disconnected_at:
+            return False
+        return timezone.now() >= self.host_disconnected_at + timedelta(seconds=self.GRACE_PERIOD_SECONDS)
 
     def set_entry_password(self):
         """
