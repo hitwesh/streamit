@@ -25,6 +25,19 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-02 — Host Room Deletion Auth Fix (STABLE)
+
+### Fix
+- Room deletion endpoint now uses session-based authentication.
+- Aligns delete behavior with create/join APIs.
+
+### Guarantees
+- Only the room host can delete a room.
+- JWT tokens are not accepted for HTTP deletion.
+- Deletion works with the same session used for login.
+
+### PS: needs testing, tomorrow positively ):
+
 ## 2026-02-02 — Host Grace Period & Room Persistence (STABLE)
 
 ### Feature
