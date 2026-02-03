@@ -128,6 +128,9 @@ JWT is required for all WebSocket connections; session cookies alone are not suf
 - **State on join**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
 
 ## Roadmap
+For the full multi-phase backend and platform roadmap, see `docs/master-roadmap.md`.
+
+Highlights:
 - Frontend application (room UI, player integration, chat, presence)
 - PostgreSQL support and production configuration
 - Containerized local development (Docker + Redis + DB)

@@ -131,6 +131,9 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - **Playback sync**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
 
 ## Future Roadmap
+For the full multi-phase backend and platform roadmap, see `docs/master-roadmap.md`.
+
+Highlights:
 - PostgreSQL support for production
 - Provider integration for video metadata
 - Rate limiting and audit logging for room events
