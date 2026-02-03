@@ -25,6 +25,16 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-04 — Redis Live Presence & Cache Registry (STABLE)
+
+### Feature
+- Central Redis live-room registry and cache helpers are now the source for live room visibility.
+- Room state, host status, and participant sets are cached on connect/disconnect and participant broadcasts.
+- Default Redis connection is exposed via `REDIS_URL`.
+
+### Requirement
+- Full testing is necessary before moving forward with any additional changes.
+
 ## 2026-02-03 — Redis Room Cache Keys (STABLE)
 
 ### Feature
