@@ -5,6 +5,12 @@ from django.utils import timezone
 from chat.models import ChatMessage
 
 from rooms.models import Room, RoomParticipant
+from common.redis_client import get_redis_client
+from common.redis_keys import (
+    room_host_status_key,
+    room_participants_key,
+    room_state_key,
+)
 
 
 class RoomPresenceConsumer(AsyncWebsocketConsumer):
@@ -55,6 +61,9 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        await self.cache_room_state()
+        await self.cache_host_status("connected")
 
         await self.broadcast_participants()
 
@@ -114,6 +123,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name,
             )
+
+        if hasattr(self, "room"):
+            await self.cache_room_state()
+            await self.cache_host_status("disconnected")
 
     async def send_error(self, message):
         await self.send(text_data=json.dumps({
@@ -223,6 +236,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
     async def broadcast_participants(self):
         payload = await self.get_participant_payload()
 
+        await self.cache_participants(payload["participants"])
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -311,3 +326,30 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "participants": participants,
             "host": host_name,
         }
+
+    async def cache_room_state(self):
+        client = get_redis_client()
+        payload = {
+            "is_active": self.room.is_active,
+            "updated_at": timezone.now().isoformat(),
+        }
+        await client.set(room_state_key(self.room.code), json.dumps(payload))
+
+    async def cache_host_status(self, status):
+        if self.user.id != self.room.host_id:
+            return
+        client = get_redis_client()
+        payload = {
+            "status": status,
+            "updated_at": timezone.now().isoformat(),
+        }
+        await client.set(room_host_status_key(self.room.code), json.dumps(payload))
+
+    async def cache_participants(self, participants):
+        client = get_redis_client()
+        key = room_participants_key(self.room.code)
+        if participants:
+            await client.delete(key)
+            await client.sadd(key, *participants)
+        else:
+            await client.delete(key)

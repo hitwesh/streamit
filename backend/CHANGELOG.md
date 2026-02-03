@@ -25,6 +25,34 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-03 — Redis Room Cache Keys (STABLE)
+
+### Feature
+Canonical Redis cache keys for room state, host status, and participant sets.
+
+### Guarantees
+- Room cache entries live in Redis, not the database.
+- Key format is stable across the backend for room state, host status, and participants.
+- Default Redis connection uses `REDIS_URL` when not explicitly configured.
+
+## 2026-02-03 — Public Room Discovery API (STABLE)
+
+### Feature
+Public rooms can be listed for homepage discovery.
+
+### Endpoint
+GET /api/rooms/public/
+
+### Rules
+- Only non-private rooms are listed.
+- Deleted rooms never appear.
+- Viewer count is derived from live presence (not stored).
+- No authentication required.
+
+### Guarantees
+- Private rooms are never exposed.
+- Listing is read-only and side-effect free.
+
 ## 2026-02-02 — Host Room Deletion Auth Fix (STABLE)
 
 ### Fix
