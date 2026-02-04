@@ -7,11 +7,12 @@ from django.utils import timezone
 from chat.models import ChatMessage
 
 from rooms.models import Room, RoomParticipant
-from common.redis_client import get_redis_client
-from common.redis_keys import (
-    room_host_status_key,
-    room_participants_key,
-    room_state_key,
+from common.redis_room_state import (
+    room_connected,
+    room_disconnected,
+    host_connected,
+    host_disconnected,
+    update_participants,
 )
 
 
@@ -130,40 +131,6 @@ def get_participant_payload_by_room_id(room_id):
     }
 
 
-# ===== REDIS HELPERS =====
-# All Redis reads/writes
-# No DB access here
-
-async def cache_room_state(room_code, is_active):
-    client = get_redis_client()
-    payload = {
-        "is_active": is_active,
-        "updated_at": timezone.now().isoformat(),
-    }
-    await client.set(room_state_key(room_code), json.dumps(payload))
-
-
-async def cache_host_status(user, room_code, host_id, status):
-    if user.id != host_id:
-        return
-    client = get_redis_client()
-    payload = {
-        "status": status,
-        "updated_at": timezone.now().isoformat(),
-    }
-    await client.set(room_host_status_key(room_code), json.dumps(payload))
-
-
-async def cache_participants(room_code, participants):
-    client = get_redis_client()
-    key = room_participants_key(room_code)
-    if participants:
-        await client.delete(key)
-        await client.sadd(key, *participants)
-    else:
-        await client.delete(key)
-
-
 # ===== AUTHORITY & VALIDATION HELPERS =====
 # is_host?
 # is_chat_enabled?
@@ -225,8 +192,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        await cache_room_state(room["code"], room["is_active"])
-        await cache_host_status(self.user, room["code"], room["host_id"], "connected")
+        await room_connected(room)
+        await host_connected(room, self.user.id)
 
         await self.broadcast_participants()
 
@@ -282,8 +249,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             )
 
         if hasattr(self, "room_data"):
-            await cache_room_state(self.room_data["code"], self.room_data["is_active"])
-            await cache_host_status(self.user, self.room_data["code"], self.room_data["host_id"], "disconnected")
+            await room_disconnected(self.room_data)
+            await host_disconnected(self.room_data, self.user.id)
 
     # --- Incoming message router ---
     async def receive(self, text_data):
@@ -392,7 +359,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
     async def broadcast_participants(self):
         payload = await get_participant_payload_by_room_id(self.room_data["id"])
 
-        await cache_participants(self.room_data["code"], payload["participants"])
+        await update_participants(self.room_data["code"], payload["participants"])
 
         await self.channel_layer.group_send(
             self.room_group_name,

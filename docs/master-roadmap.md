@@ -8,6 +8,8 @@ This roadmap assumes:
 - **Web frontend** (later)
 - **Long-term maintainability** as a first-class goal
 
+**Provenance note:** This roadmap was created on **2026-02-03** and is not the original roadmap. It is intended to guide development from that date forward. Significant development occurred before 2026-02-03 and is not explicitly captured here or fully reflected in `CHANGELOG.md`.
+
 ## Core Principles (Do Not Break These)
 - Backend is the source of truth
 - Host authority is absolute

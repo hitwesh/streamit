@@ -25,6 +25,29 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-04 — Phase 0 Realtime Stabilization (STABLE)
+
+### Summary
+Stabilized the realtime backend foundation without changing behavior.
+
+### Guarantees
+- Async WebSocket consumers do not access Django ORM objects directly.
+- All ORM access is isolated behind `database_sync_to_async` helpers.
+- Redis write semantics are centralized in a dedicated layer.
+- Redis keys for room state, host status, and participants are canonical and stable.
+- Reconnect behavior, playback authority, chat behavior, and presence semantics are unchanged.
+
+### Constraints
+- Consumers must express intent only and must not:
+	- access Redis clients directly
+	- construct Redis payloads
+	- access ORM objects
+- Any violation of these rules is a regression.
+
+### Notes
+This phase introduces no new features and exists solely to remove hidden technical debt
+before advancing to room lifecycle state machines.
+
 ## 2026-02-04 — USER_JOINED Exclusion on Connect (STABLE)
 
 ### Fix
@@ -41,8 +64,6 @@ This file is treated as a **contract** for backend behavior.
 - Room state, host status, and participant sets are cached on connect/disconnect and participant broadcasts.
 - Default Redis connection is exposed via `REDIS_URL`.
 
-### Requirement
-- Full testing is necessary before moving forward with any additional changes.
 
 ## 2026-02-03 — Redis Room Cache Keys (STABLE)
 
@@ -82,8 +103,6 @@ GET /api/rooms/public/
 - Only the room host can delete a room.
 - JWT tokens are not accepted for HTTP deletion.
 - Deletion works with the same session used for login.
-
-### PS: needs testing, tomorrow positively ):
 
 ## 2026-02-02 — Host Grace Period & Room Persistence (STABLE)
 
