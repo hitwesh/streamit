@@ -110,20 +110,19 @@ def clear_grace_by_room_id(room_id):
 
 @database_sync_to_async
 def get_participant_payload_by_room_id(room_id):
-    participants = list(
+    qs = (
         RoomParticipant.objects
         .filter(room_id=room_id, status=RoomParticipant.STATUS_APPROVED)
-        .select_related("user")
-        .values_list("user__display_name", flat=True)
+        .select_related("user", "room__host")
     )
 
-    host_name = (
-        Room.objects
-        .select_related("host")
-        .get(id=room_id)
-        .host
-        .display_name
-    )
+    participants = []
+    host_name = None
+
+    for rp in qs:
+        participants.append(rp.user.display_name)
+        if rp.user_id == rp.room.host_id:
+            host_name = rp.user.display_name
 
     return {
         "participants": participants,
