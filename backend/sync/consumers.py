@@ -235,6 +235,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             {
                 "type": "user_joined",
                 "user": self.user.display_name,
+                "exclude_channel": self.channel_name,
             }
         )
 
@@ -328,6 +329,9 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
     # --- Event handlers ---
     async def user_joined(self, event):
+        if event.get("exclude_channel") == self.channel_name:
+            return
+
         await self.send(text_data=json.dumps({
             "type": "USER_JOINED",
             "user": event["user"],

@@ -25,6 +25,15 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-04 — USER_JOINED Exclusion on Connect (STABLE)
+
+### Fix
+- USER_JOINED now excludes the connecting socket during WebSocket connect.
+
+### Guarantees
+- The joining client does not receive its own USER_JOINED event.
+- All other connected participants still receive USER_JOINED.
+
 ## 2026-02-04 — Redis Live Presence & Cache Registry (STABLE)
 
 ### Feature
