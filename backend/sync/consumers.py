@@ -25,74 +25,94 @@ from common.redis_keys import (
 # - return primitives / dicts only
 
 @database_sync_to_async
-def get_room(room_code):
+def get_room_snapshot(room_code):
     try:
-        return Room.objects.get(code=room_code)
+        room = Room.objects.get(code=room_code)
+        return {
+            "id": room.id,
+            "code": room.code,
+            "host_id": room.host_id,
+            "is_active": room.is_active,
+            "is_chat_enabled": room.is_chat_enabled,
+            "host_disconnected_at": room.host_disconnected_at,
+        }
     except Room.DoesNotExist:
         return None
 
 
 @database_sync_to_async
-def is_approved_participant(room, user):
+def is_approved_participant(room_id, user):
     return RoomParticipant.objects.filter(
-        room=room,
+        room_id=room_id,
         user=user,
         status=RoomParticipant.STATUS_APPROVED,
     ).exists()
 
 
 @database_sync_to_async
-def save_message(room, user, text):
+def save_message_by_room_id(room_id, user, text):
     ChatMessage.objects.create(
-        room=room,
+        room_id=room_id,
         user=user,
         message=text,
     )
 
 
 @database_sync_to_async
-def get_recent_messages(room, limit=50):
-    return list(
+def get_recent_messages_by_room_id(room_id, limit=50):
+    messages = (
         ChatMessage.objects
-        .filter(room=room)
+        .filter(room_id=room_id)
         .select_related("user")
         .order_by("-created_at")[:limit]
-    )[::-1]
+    )
+
+    return [
+        {
+            "user": m.user.display_name,
+            "message": m.message,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in reversed(list(messages))
+    ]
 
 
 @database_sync_to_async
-def get_playback_state(room):
+def get_playback_state_by_room_id(room_id):
     from rooms.models import RoomPlaybackState
-    state, _ = RoomPlaybackState.objects.get_or_create(room=room)
-    return state
+    state, _ = RoomPlaybackState.objects.get_or_create(room_id=room_id)
+    return {
+        "is_playing": state.is_playing,
+        "time": state.current_time,
+    }
 
 
 @database_sync_to_async
-def update_playback_state(room, is_playing, time):
+def update_playback_state_by_room_id(room_id, is_playing, time):
     from rooms.models import RoomPlaybackState
-    state, _ = RoomPlaybackState.objects.get_or_create(room=room)
+    state, _ = RoomPlaybackState.objects.get_or_create(room_id=room_id)
     state.is_playing = is_playing
     state.current_time = time
     state.save()
 
 
 @database_sync_to_async
-def mark_host_disconnected(room):
-    room.host_disconnected_at = timezone.now()
-    room.save(update_fields=["host_disconnected_at"])
+def mark_host_disconnected_by_room_id(room_id):
+    Room.objects.filter(id=room_id).update(
+        host_disconnected_at=timezone.now()
+    )
 
 
 @database_sync_to_async
-def clear_grace(room):
-    room.host_disconnected_at = None
-    room.save(update_fields=["host_disconnected_at"])
+def clear_grace_by_room_id(room_id):
+    Room.objects.filter(id=room_id).update(host_disconnected_at=None)
 
 
 @database_sync_to_async
-def get_participant_payload(room):
+def get_participant_payload_by_room_id(room_id):
     participants = list(
         RoomParticipant.objects
-        .filter(room=room, status=RoomParticipant.STATUS_APPROVED)
+        .filter(room_id=room_id, status=RoomParticipant.STATUS_APPROVED)
         .select_related("user")
         .values_list("user__display_name", flat=True)
     )
@@ -100,7 +120,7 @@ def get_participant_payload(room):
     host_name = (
         Room.objects
         .select_related("host")
-        .get(id=room.id)
+        .get(id=room_id)
         .host
         .display_name
     )
@@ -115,24 +135,24 @@ def get_participant_payload(room):
 # All Redis reads/writes
 # No DB access here
 
-async def cache_room_state(room):
+async def cache_room_state(room_code, is_active):
     client = get_redis_client()
     payload = {
-        "is_active": room.is_active,
+        "is_active": is_active,
         "updated_at": timezone.now().isoformat(),
     }
-    await client.set(room_state_key(room.code), json.dumps(payload))
+    await client.set(room_state_key(room_code), json.dumps(payload))
 
 
-async def cache_host_status(user, room, status):
-    if user.id != room.host_id:
+async def cache_host_status(user, room_code, host_id, status):
+    if user.id != host_id:
         return
     client = get_redis_client()
     payload = {
         "status": status,
         "updated_at": timezone.now().isoformat(),
     }
-    await client.set(room_host_status_key(room.code), json.dumps(payload))
+    await client.set(room_host_status_key(room_code), json.dumps(payload))
 
 
 async def cache_participants(room_code, participants):
@@ -164,24 +184,28 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             return
 
         # 2️⃣ Room existence
-        self.room = await get_room(self.room_code)
-        room = self.room
+        self.room_data = await get_room_snapshot(self.room_code)
+        room = self.room_data
         if not room:
             await self.close(code=4002)
             return
 
-        if not room.is_active:
+        if not room["is_active"]:
             await self.close(code=4005)
             return
 
-        if room.grace_expired():
+        if room["host_disconnected_at"] and timezone.now() - room["host_disconnected_at"] > timezone.timedelta(
+            seconds=Room.GRACE_PERIOD_SECONDS
+        ):
             await self.close(code=4004)
             return
 
-        self.room_group_name = f"room_{room.code}"
+        self.room_group_name = f"room_{room['code']}"
 
-        if self.user.id == room.host_id and room.is_in_grace():
-            await clear_grace(room)
+        if self.user.id == room["host_id"] and room["host_disconnected_at"] and timezone.now() - room["host_disconnected_at"] <= timezone.timedelta(
+            seconds=Room.GRACE_PERIOD_SECONDS
+        ):
+            await clear_grace_by_room_id(room["id"])
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -189,7 +213,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             )
 
         # 3️⃣ Participant approval
-        is_allowed = await is_approved_participant(room, self.user)
+        is_allowed = await is_approved_participant(room["id"], self.user)
         if not is_allowed:
             await self.close(code=4003)
             return
@@ -202,31 +226,24 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        await cache_room_state(room)
-        await cache_host_status(self.user, room, "connected")
+        await cache_room_state(room["code"], room["is_active"])
+        await cache_host_status(self.user, room["code"], room["host_id"], "connected")
 
         await self.broadcast_participants()
 
-        messages = await get_recent_messages(room)
+        messages = await get_recent_messages_by_room_id(room["id"])
 
         await self.send(text_data=json.dumps({
             "type": "CHAT_HISTORY",
-            "messages": [
-                {
-                    "user": m.user.display_name,
-                    "message": m.message,
-                    "created_at": m.created_at.isoformat(),
-                }
-                for m in messages
-            ]
+            "messages": messages,
         }))
 
-        state = await get_playback_state(room)
+        state = await get_playback_state_by_room_id(room["id"])
 
         await self.send(text_data=json.dumps({
             "type": "PLAYBACK_STATE",
-            "is_playing": state.is_playing,
-            "time": state.current_time,
+            "is_playing": state["is_playing"],
+            "time": state["time"],
         }))
 
         # 5️⃣ Notify presence
@@ -241,8 +258,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
-            if self.user.id == self.room.host_id:
-                await mark_host_disconnected(self.room)
+            if self.user.id == self.room_data["host_id"]:
+                await mark_host_disconnected_by_room_id(self.room_data["id"])
 
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -265,9 +282,9 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 self.channel_name,
             )
 
-        if hasattr(self, "room"):
-            await cache_room_state(self.room)
-            await cache_host_status(self.user, self.room, "disconnected")
+        if hasattr(self, "room_data"):
+            await cache_room_state(self.room_data["code"], self.room_data["is_active"])
+            await cache_host_status(self.user, self.room_data["code"], self.room_data["host_id"], "disconnected")
 
     # --- Incoming message router ---
     async def receive(self, text_data):
@@ -282,7 +299,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # ---------------- CHAT ----------------
         if event_type == "CHAT_MESSAGE":
-            if not self.room.is_chat_enabled:
+            if not self.room_data["is_chat_enabled"]:
                 await self.send_error("Chat is disabled in this room")
                 return
 
@@ -290,7 +307,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             if not message_text:
                 return
 
-            await save_message(self.room, self.user, message_text)
+            await save_message_by_room_id(self.room_data["id"], self.user, message_text)
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -307,13 +324,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # ---------------- PLAYBACK (HOST ONLY) ----------------
         if event_type in {"PLAY", "PAUSE", "SEEK"}:
-            if self.user.id != self.room.host_id:
+            if self.user.id != self.room_data["host_id"]:
                 return  # silently ignore
 
             is_playing = event_type == "PLAY"
             time = data.get("time", 0)
 
-            await update_playback_state(self.room, is_playing, time)
+            await update_playback_state_by_room_id(self.room_data["id"], is_playing, time)
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -374,9 +391,9 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         }))
 
     async def broadcast_participants(self):
-        payload = await get_participant_payload(self.room)
+        payload = await get_participant_payload_by_room_id(self.room_data["id"])
 
-        await cache_participants(self.room.code, payload["participants"])
+        await cache_participants(self.room_data["code"], payload["participants"])
 
         await self.channel_layer.group_send(
             self.room_group_name,
