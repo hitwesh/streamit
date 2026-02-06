@@ -25,6 +25,33 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-06 — Phase 1.1-1.3 Room Lifecycle (STABLE)
+
+### Summary
+Formalized room lifecycle state in the DB and shifted grace timing authority to Redis TTL.
+
+### Added (Phase 1.1)
+- `Room.state` with enum values: CREATED, LIVE, GRACE, EXPIRED, DELETED.
+
+### Added (Phase 1.2)
+- Explicit DB-only state transition helpers: `mark_live`, `mark_grace`, `mark_expired`, `mark_deleted`.
+- Invalid transitions are ignored by design.
+
+### Added (Phase 1.3)
+- Redis TTL grace key `room:{code}:grace` with centralized helpers.
+- Host disconnect starts grace in Redis and marks DB state GRACE.
+- Host reconnect clears Redis grace and marks DB state LIVE.
+- Lazy expiry: first join after TTL expiry marks DB state EXPIRED and closes.
+
+### Guarantees
+- Redis is authoritative for grace timing; DB records durable state only.
+- No polling or background jobs for expiry.
+- No async ORM access inside consumers (DB changes remain sync-wrapped).
+
+### Constraints
+- `host_disconnected_at` remains for audit only; timing no longer depends on it.
+- Legacy `is_in_grace` and `grace_expired` remain until later cleanup.
+
 ## 2026-02-05 — Status Update (NO CHANGE)
 
 ### Notes
