@@ -20,8 +20,22 @@ class Room(models.Model):
         (ENTRY_PASSWORD, "Password Based"),
     ]
 
+    class State(models.TextChoices):
+        CREATED = "CREATED"
+        LIVE = "LIVE"
+        GRACE = "GRACE"
+        EXPIRED = "EXPIRED"
+        DELETED = "DELETED"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(max_length=10, unique=True)
+
+    state = models.CharField(
+        max_length=16,
+        choices=State.choices,
+        default=State.CREATED,
+        db_index=True,
+    )
 
     host = models.ForeignKey(
         User,
@@ -54,7 +68,7 @@ class Room(models.Model):
     # NEW
     host_disconnected_at = models.DateTimeField(null=True, blank=True)
 
-    GRACE_PERIOD_SECONDS = 600  # 10 minutes
+    GRACE_PERIOD_SECONDS = 30  # 30 seconds for testing
 
     def is_in_grace(self):
         if not self.host_disconnected_at:
@@ -79,6 +93,27 @@ class Room(models.Model):
         if not self.entry_password_hash:
             return False
         return check_password(raw_password, self.entry_password_hash)
+
+    def mark_live(self):
+        if self.state != self.State.LIVE:
+            self.state = self.State.LIVE
+            self.save(update_fields=["state"])
+
+    def mark_grace(self):
+        if self.state == self.State.LIVE:
+            self.state = self.State.GRACE
+            self.save(update_fields=["state"])
+
+    def mark_expired(self):
+        if self.state == self.State.GRACE:
+            self.state = self.State.EXPIRED
+            self.save(update_fields=["state"])
+
+    def mark_deleted(self):
+        if self.state != self.State.DELETED:
+            self.state = self.State.DELETED
+            self.is_active = False
+            self.save(update_fields=["state", "is_active"])
 
     def __str__(self):
         return f"Room {self.code}"

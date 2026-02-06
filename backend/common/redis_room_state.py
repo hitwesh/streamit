@@ -82,3 +82,26 @@ async def update_participants(room_code: str, participants: list[str]):
     await client.delete(key)
     if participants:
         await client.sadd(key, *participants)
+
+
+# ======================
+# Grace period (TTL)
+# ======================
+
+async def start_grace(room_code: str, ttl_seconds: int):
+    client = get_redis_client()
+    await client.set(
+        f"room:{room_code}:grace",
+        "1",
+        ex=ttl_seconds,
+    )
+
+
+async def clear_grace(room_code: str):
+    client = get_redis_client()
+    await client.delete(f"room:{room_code}:grace")
+
+
+async def is_in_grace(room_code: str) -> bool:
+    client = get_redis_client()
+    return await client.exists(f"room:{room_code}:grace") == 1

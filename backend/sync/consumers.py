@@ -13,6 +13,9 @@ from common.redis_room_state import (
     host_connected,
     host_disconnected,
     update_participants,
+    start_grace,
+    clear_grace,
+    is_in_grace,
 )
 
 
@@ -36,6 +39,7 @@ def get_room_snapshot(room_code):
             "is_active": room.is_active,
             "is_chat_enabled": room.is_chat_enabled,
             "host_disconnected_at": room.host_disconnected_at,
+            "state": room.state,
         }
     except Room.DoesNotExist:
         return None
@@ -110,6 +114,24 @@ def clear_grace_by_room_id(room_id):
 
 
 @database_sync_to_async
+def mark_room_grace_by_id(room_id):
+    room = Room.objects.get(id=room_id)
+    room.mark_grace()
+
+
+@database_sync_to_async
+def mark_room_live_by_id(room_id):
+    room = Room.objects.get(id=room_id)
+    room.mark_live()
+
+
+@database_sync_to_async
+def mark_room_expired_by_id(room_id):
+    room = Room.objects.get(id=room_id)
+    room.mark_expired()
+
+
+@database_sync_to_async
 def get_participant_payload_by_room_id(room_id):
     qs = (
         RoomParticipant.objects
@@ -160,23 +182,23 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4005)
             return
 
-        if room["host_disconnected_at"] and timezone.now() - room["host_disconnected_at"] > timezone.timedelta(
-            seconds=Room.GRACE_PERIOD_SECONDS
-        ):
-            await self.close(code=4004)
-            return
+        if self.room_data["state"] == Room.State.GRACE:
+            if not await is_in_grace(self.room_data["code"]):
+                await mark_room_expired_by_id(self.room_data["id"])
+                await self.close(code=4004)
+                return
 
         self.room_group_name = f"room_{room['code']}"
 
-        if self.user.id == room["host_id"] and room["host_disconnected_at"] and timezone.now() - room["host_disconnected_at"] <= timezone.timedelta(
-            seconds=Room.GRACE_PERIOD_SECONDS
-        ):
-            await clear_grace_by_room_id(room["id"])
+        if self.user.id == self.room_data["host_id"]:
+            if await is_in_grace(self.room_data["code"]):
+                await clear_grace(self.room_data["code"])
+                await mark_room_live_by_id(self.room_data["id"])
 
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "host_reconnected"}
-            )
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "host_reconnected"}
+                )
 
         # 3️⃣ Participant approval
         is_allowed = await is_approved_participant(room["id"], self.user)
@@ -226,6 +248,11 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         if hasattr(self, "room_group_name"):
             if self.user.id == self.room_data["host_id"]:
                 await mark_host_disconnected_by_room_id(self.room_data["id"])
+                await mark_room_grace_by_id(self.room_data["id"])
+                await start_grace(
+                    self.room_data["code"],
+                    Room.GRACE_PERIOD_SECONDS,
+                )
 
                 await self.channel_layer.group_send(
                     self.room_group_name,
