@@ -25,6 +25,25 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-06 — Lifecycle Enforcement & Test Suite (STABLE)
+
+### Summary
+Added deterministic room expiry via a management command, hardened Redis async usage, and formalized the test suite layout.
+
+### Added
+- Management command `expire_rooms` to mark GRACE rooms EXPIRED and clean related Redis keys.
+- Test coverage for room lifecycle, join behavior, chat persistence, playback state creation, and Redis grace TTL.
+
+### Changed
+- Redis async client is no longer cached to prevent cross-event-loop reuse.
+- Tests use per-class event loops for Redis async helpers.
+- Legacy app-level `tests.py` files removed in favor of package-based `tests/` directories.
+
+### Guarantees
+- Room expiry is deterministic without polling or WebSocket triggers.
+- Redis cleanup remains best-effort and does not affect DB authority.
+- Django test discovery is unambiguous across apps.
+
 ## 2026-02-06 — Phase 1.1-1.3 Room Lifecycle (STABLE)
 
 ### Summary
