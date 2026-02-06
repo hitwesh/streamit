@@ -1,3 +1,5 @@
+import os
+
 from django.test import TestCase
 
 from rooms.models import RoomParticipant
@@ -5,16 +7,19 @@ from rooms.services import create_room, join_room
 from users.models import User
 
 
+TEST_PASSWORD = os.getenv("TEST_USER_PASSWORD", "test-password")
+
+
 class RoomJoinTests(TestCase):
     def setUp(self):
         self.host = User.objects.create_user(
             email="hiteshroy0001@gmail.com",
-            password="Notimetodie007",
+            password=TEST_PASSWORD,
             display_name="Host",
         )
         self.user = User.objects.create_user(
             email="user@test.com",
-            password="password",
+            password=TEST_PASSWORD,
             display_name="UserB",
         )
 
