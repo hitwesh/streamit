@@ -20,7 +20,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
 
-        grace_rooms = Room.objects.filter(state=Room.State.GRACE)
+        grace_rooms = Room.objects.filter(
+            state=Room.State.GRACE,
+            is_active=True,
+        )
 
         expired_count = 0
 
@@ -41,6 +44,8 @@ class Command(BaseCommand):
         )
 
     def expire_room(self, room: Room):
+        if room.state == Room.State.DELETED:
+            return
         # 1) Update DB (authoritative)
         room.mark_expired()
 

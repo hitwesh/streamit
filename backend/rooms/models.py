@@ -94,26 +94,40 @@ class Room(models.Model):
             return False
         return check_password(raw_password, self.entry_password_hash)
 
+    def _can_transition(self, target):
+        terminal = {self.State.EXPIRED, self.State.DELETED}
+
+        if self.state in terminal:
+            return False
+
+        allowed = {
+            self.State.CREATED: {self.State.LIVE},
+            self.State.LIVE: {self.State.GRACE},
+            self.State.GRACE: {self.State.LIVE, self.State.EXPIRED},
+        }
+
+        return target in allowed.get(self.state, set())
+
     def mark_live(self):
-        if self.state != self.State.LIVE:
+        if self._can_transition(self.State.LIVE):
             self.state = self.State.LIVE
             self.save(update_fields=["state"])
 
     def mark_grace(self):
-        if self.state == self.State.LIVE:
+        if self._can_transition(self.State.GRACE):
             self.state = self.State.GRACE
             self.save(update_fields=["state"])
 
     def mark_expired(self):
-        if self.state == self.State.GRACE:
+        if self._can_transition(self.State.EXPIRED):
             self.state = self.State.EXPIRED
-            self.save(update_fields=["state"])
-
-    def mark_deleted(self):
-        if self.state != self.State.DELETED:
-            self.state = self.State.DELETED
             self.is_active = False
             self.save(update_fields=["state", "is_active"])
+
+    def mark_deleted(self):
+        self.state = self.State.DELETED
+        self.is_active = False
+        self.save(update_fields=["state", "is_active"])
 
     def __str__(self):
         return f"Room {self.code}"
