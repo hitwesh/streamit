@@ -25,6 +25,33 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-08 — Phase 1 Complete (STABLE)
+
+### Summary
+Phase 1 complete: room lifecycle, grace handling, Redis integration, and tests.
+
+### Guarantees
+- Room lifecycle transitions are enforced and terminal states are absolute.
+- Grace handling is deterministic and does not depend on WebSocket timing.
+- Redis presence and grace keys remain authoritative for realtime state.
+- Tests lock in lifecycle and realtime behavior.
+
+## 2026-02-08 — Phase 2 Public Room Discovery (STABLE)
+
+### Summary
+Added a read-only public rooms API backed by Redis viewer counts with strict filtering for active, non-private rooms.
+
+### Added
+- Redis helper `get_viewer_count` for participant set cardinality.
+- `get_public_rooms` service to filter live/grace public rooms only.
+- GET /api/rooms/public/ endpoint to return code, host, viewer count, and created timestamp.
+- Tests covering public listing and private room exclusion.
+
+### Guarantees
+- Private rooms are never exposed.
+- Expired or deleted rooms are never listed.
+- No WebSocket or state mutation dependencies.
+
 ## 2026-02-08 — Room Lifecycle Guardrails (STABLE)
 
 ### Summary
