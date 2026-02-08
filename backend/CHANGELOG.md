@@ -25,6 +25,19 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-08 — Room Lifecycle Guardrails (STABLE)
+
+### Summary
+Centralized room state transition rules in the model and blocked expiration logic from touching deleted rooms.
+
+### Changed
+- Room lifecycle transitions now flow through a single guard; terminal states are absolute.
+- Expiration management command only targets active GRACE rooms and skips deleted rooms.
+
+### Guarantees
+- EXPIRED cannot transition back to LIVE.
+- DELETED is terminal and cannot be overwritten by expiry.
+
 ## 2026-02-07 — Status Update (NO CHANGE)
 
 ### Notes
