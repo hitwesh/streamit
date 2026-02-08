@@ -84,6 +84,11 @@ async def update_participants(room_code: str, participants: list[str]):
         await client.sadd(key, *participants)
 
 
+async def get_viewer_count(room_code: str) -> int:
+    client = get_redis_client()
+    return await client.scard(room_participants_key(room_code))
+
+
 # ======================
 # Grace period (TTL)
 # ======================

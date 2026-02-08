@@ -74,3 +74,17 @@ def join_room(*, room_code, user, password=None):
         status=RoomParticipant.STATUS_PENDING,
     )
     return participant, room
+
+
+def get_public_rooms():
+    return (
+        Room.objects
+        .filter(
+            is_private=False,
+            is_active=True,
+            state__in=[Room.State.LIVE, Room.State.GRACE],
+        )
+        .only("code", "host", "created_at")
+        .select_related("host")
+        .order_by("-created_at")
+    )

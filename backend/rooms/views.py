@@ -1,11 +1,10 @@
-from django.shortcuts import render
-
-# Create your views here.
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
+
+from asgiref.sync import async_to_sync
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -15,8 +14,8 @@ from rest_framework import status
 import json
 
 from .models import Room, RoomParticipant
-from .services import create_room
-from .services import create_room, join_room
+from common.redis_room_state import get_viewer_count
+from .services import create_room, join_room, get_public_rooms
 
 @csrf_exempt
 @require_POST
@@ -122,3 +121,20 @@ def delete_room_view(request):
     room.save(update_fields=["is_active"])
 
     return Response({"status": "room_deleted"})
+
+
+@api_view(["GET"])
+def public_rooms_view(request):
+    rooms = get_public_rooms()
+    data = []
+
+    for room in rooms:
+        viewers = async_to_sync(get_viewer_count)(room.code)
+        data.append({
+            "code": room.code,
+            "host": room.host.display_name,
+            "viewers": viewers,
+            "created_at": room.created_at.isoformat(),
+        })
+
+    return Response(data)
