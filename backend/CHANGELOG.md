@@ -33,6 +33,9 @@ Centralized room state transition rules in the model and blocked expiration logi
 ### Changed
 - Room lifecycle transitions now flow through a single guard; terminal states are absolute.
 - Expiration management command only targets active GRACE rooms and skips deleted rooms.
+- WebSocket tests now wait for specific bootstrap events instead of assuming ordering.
+- Grace-with-participants test marks room LIVE and runs `expire_rooms` after grace to match current lifecycle behavior.
+- Async ORM access in websocket tests is wrapped with `database_sync_to_async`.
 
 ### Guarantees
 - EXPIRED cannot transition back to LIVE.
