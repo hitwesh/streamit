@@ -25,6 +25,26 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-10 — Phase 2 Public Room Discovery (STABLE)
+
+### Feature
+- Public rooms listing endpoint (`GET /api/rooms/public/`)
+
+### Behavior
+- Only non-private rooms are listed
+- Rooms must be LIVE to appear
+- Viewer count is derived from Redis presence
+- Redis is the realtime source; DB is authoritative fallback
+
+### Guarantees
+- Private rooms never appear
+- Expired or deleted rooms never appear
+- Redis failure does not corrupt DB state
+
+### Constraints
+- Viewer counts are approximate and realtime
+- No side effects on read
+
 ## 2026-02-08 — Phase 1 Complete (STABLE)
 
 ### Summary
