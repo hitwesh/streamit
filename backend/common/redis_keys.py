@@ -8,3 +8,7 @@ def room_participants_key(room_code: str) -> str:
 
 def room_host_status_key(room_code: str) -> str:
     return f"room:{room_code}:host_status"
+
+
+def room_viewers_key(room_code: str) -> str:
+    return f"room:{room_code}:viewers"

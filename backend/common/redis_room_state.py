@@ -6,6 +6,7 @@ from common.redis_keys import (
     room_state_key,
     room_host_status_key,
     room_participants_key,
+    room_viewers_key,
 )
 
 
@@ -86,7 +87,20 @@ async def update_participants(room_code: str, participants: list[str]):
 
 async def get_viewer_count(room_code: str) -> int:
     client = get_redis_client()
-    return await client.scard(room_participants_key(room_code))
+    viewers = await client.get(room_viewers_key(room_code))
+    return int(viewers or 0)
+
+
+async def increment_viewers(room_code: str):
+    client = get_redis_client()
+    await client.incr(room_viewers_key(room_code))
+
+
+async def decrement_viewers(room_code: str):
+    client = get_redis_client()
+    value = await client.decr(room_viewers_key(room_code))
+    if value <= 0:
+        await client.delete(room_viewers_key(room_code))
 
 
 # ======================

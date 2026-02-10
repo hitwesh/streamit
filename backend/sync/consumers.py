@@ -16,6 +16,8 @@ from common.redis_room_state import (
     start_grace,
     clear_grace,
     is_in_grace,
+    increment_viewers,
+    decrement_viewers,
 )
 
 
@@ -214,6 +216,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        await increment_viewers(self.room_data["code"])
+
         await room_connected(room)
         await host_connected(room, self.user.id)
 
@@ -278,6 +282,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         if hasattr(self, "room_data"):
             await room_disconnected(self.room_data)
             await host_disconnected(self.room_data, self.user.id)
+            await decrement_viewers(self.room_data["code"])
 
     # --- Incoming message router ---
     async def receive(self, text_data):

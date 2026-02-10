@@ -14,8 +14,12 @@ from rest_framework import status
 import json
 
 from .models import Room, RoomParticipant
-from common.redis_room_state import get_viewer_count
-from .services import create_room, join_room, get_public_rooms
+from common.redis_client import get_redis_client
+from common.redis_keys import (
+    room_host_status_key,
+    room_viewers_key,
+)
+from .services import create_room, join_room
 
 @csrf_exempt
 @require_POST
@@ -125,16 +129,40 @@ def delete_room_view(request):
 
 @api_view(["GET"])
 def public_rooms_view(request):
-    rooms = get_public_rooms()
-    data = []
+    rooms = list(
+        Room.objects.filter(
+            is_private=False,
+            is_active=True,
+            state=Room.State.LIVE,
+        )
+        .only("code", "host", "created_at")
+        .select_related("host")
+        .order_by("-created_at")
+    )
 
-    for room in rooms:
-        viewers = async_to_sync(get_viewer_count)(room.code)
-        data.append({
-            "code": room.code,
-            "host": room.host.display_name,
-            "viewers": viewers,
-            "created_at": room.created_at.isoformat(),
-        })
+    async def build_response(rooms_list):
+        client = get_redis_client()
+        response = []
 
+        for room in rooms_list:
+            host_status = await client.get(room_host_status_key(room.code))
+            if not host_status:
+                continue
+
+            host_payload = json.loads(host_status)
+            if host_payload.get("status") != "connected":
+                continue
+
+            viewers = await client.get(room_viewers_key(room.code))
+
+            response.append({
+                "code": room.code,
+                "host": room.host.display_name,
+                "viewers": int(viewers or 0),
+                "created_at": room.created_at.isoformat(),
+            })
+
+        return response
+
+    data = async_to_sync(build_response)(rooms)
     return Response(data)
