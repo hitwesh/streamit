@@ -10,6 +10,9 @@ Backend service for a real-time watch-together platform with rooms, chat, and sy
 - Real-time chat with persistence and room-level enable/disable
 - Host-only playback controls (`PLAY`, `PAUSE`, `SEEK`)
 - Playback state sync for late joiners
+- Room lifecycle state machine (CREATED → LIVE → GRACE → EXPIRED)
+- Grace period with Redis TTL and host reconnect support
+- Public room discovery with Redis-backed viewer counts
 - Admin panel enabled
 
 ## Tech Stack
@@ -27,6 +30,16 @@ StreamIt is a single Django project that serves:
 - **WebSockets** for presence, chat, and playback synchronization
 
 HTTP traffic is handled by Django (WSGI/ASGI), while real-time events are handled by Django Channels (ASGI) with Redis for fan-out. WebSocket authentication is JWT-based using a custom middleware that validates the token from the query string.
+
+Redis is the realtime authority for:
+- Host presence
+- Viewer counts
+- Grace timing (TTL)
+
+The database is the durable authority for:
+- Room lifecycle state
+- Room metadata
+- Playback state
 
 ## Setup Instructions
 ### Database initialization (first run)
@@ -89,6 +102,8 @@ Base path: `/api/`
 - `POST /api/rooms/create/` → Create room (public/private + entry mode)
 - `POST /api/rooms/join/` → Join room (password or approval flow)
 - `POST /api/rooms/approve/` → Host approves a pending participant
+- `POST /api/rooms/delete/` → Host deletes a room
+- `GET /api/rooms/public/` → Public room discovery (Redis-backed)
 
 ## WebSocket Endpoint
 - `ws/room/<room_code>/?token=<JWT>`
@@ -114,6 +129,10 @@ The token is required for all WebSocket connections. Sessions alone are not suff
   - Payload: `{ "type": "USER_LEFT", "user": "..." }`
 - `ROOM_PARTICIPANTS`:
   - Payload: `{ "type": "ROOM_PARTICIPANTS", "participants": [...], "host": "..." }`
+- `HOST_DISCONNECTED`:
+  - Payload: `{ "type": "HOST_DISCONNECTED", "grace_seconds": <seconds> }`
+- `HOST_RECONNECTED`:
+  - Payload: `{ "type": "HOST_RECONNECTED" }`
 - `CHAT_MESSAGE`:
   - Payload: `{ "type": "CHAT_MESSAGE", "user": "...", "message": "..." }`
 - `CHAT_HISTORY`:
@@ -129,6 +148,11 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - **Host-only playback**: Only the room host can emit `PLAY`, `PAUSE`, and `SEEK`.
 - **Chat disable behavior**: When disabled, `CHAT_MESSAGE` is rejected with an `ERROR` payload.
 - **Playback sync**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
+- **Lifecycle state**: Room state transitions are explicit and DB-authoritative.
+- **Grace timing**: Redis TTL controls grace; DB records state for durability.
+
+### Maintenance Commands
+- `python manage.py expire_rooms` → Marks GRACE rooms as EXPIRED and clears related Redis keys.
 
 ## Future Roadmap
 For the full multi-phase backend and platform roadmap, see `docs/master-roadmap.md`.
