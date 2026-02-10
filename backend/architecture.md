@@ -1,36 +1,70 @@
 # Backend Architecture
 
-> This document reflects the backend state as of Jan 31, 2026.
-> It may evolve as features are added.
+> This document reflects the backend state as of Feb 10, 2026.
+> It will evolve as features are added.
 
 ## Overview
-This backend is a Django 4.2 project with Django REST Framework for HTTP APIs and Django Channels (ASGI) for real-time WebSocket communication. Authentication uses a custom `User` model with email/password and guest accounts, a custom email auth backend, plus JWT tokens for API/WebSocket access. WebSockets use Redis as the channel layer backend.
+StreamIt is a Django 4.2 backend that serves REST APIs and real-time WebSockets for a watch-together platform. Django REST Framework handles HTTP APIs, Django Channels handles WebSockets, and Redis provides realtime authority (presence, viewers, grace TTL). The database remains the durable source of truth for room lifecycle and metadata.
 
 ## Runtime Stack
 - **Django**: Core HTTP handling, ORM, admin, auth.
-- **Django REST Framework**: API authentication (`JWTAuthentication`).
-- **Django Channels + Daphne**: ASGI entry point, WebSocket support.
-- **Redis**: Channel layer for websocket fan-out (configured at 127.0.0.1:6379).
+- **Django REST Framework**: API authentication (JWT).
+- **Django Channels + Daphne**: ASGI entry point and WebSocket support.
+- **Redis**: Channel layer, presence, viewer counts, and grace TTL.
 - **SQLite**: Default database (`db.sqlite3`).
 
 ## Project Layout
 - **core/**: Project configuration and routing.
-  - `settings.py`: Installed apps, auth backends, REST/JWT settings, channel layers.
+  - `settings.py`: Apps, auth backends, REST/JWT settings, channel layers.
   - `urls.py`: HTTP API routing (`/api/auth/`, `/api/rooms/`).
-  - `asgi.py`: ASGI app with HTTP + WebSocket protocol routing and JWT middleware.
+  - `asgi.py`: ASGI app with HTTP + WebSocket routing and JWT middleware.
   - `routing.py`: WebSocket URL patterns.
 - **users/**: Custom user model and authentication endpoints.
-- **rooms/**: Room lifecycle, participants, and approval flow.
-- **sync/**: WebSocket consumers and JWT middleware.
-- **chat/**, **providers/**, **common/**: Present for future domain features (no models yet).
+- **rooms/**: Room lifecycle, participants, HTTP APIs, and lifecycle management.
+  - `management/commands/expire_rooms.py`: Deterministic room expiry and Redis cleanup.
+- **sync/**: WebSocket consumer logic and JWT middleware.
+- **chat/**: Chat persistence model and chat history retrieval.
+- **common/**: Redis client and canonical Redis key helpers.
+- **providers/**: Placeholder for future provider integrations.
 
 ## Authentication & Authorization
-- **User model**: `users.User` (UUID primary key), supports guests (`is_guest=True`).
-- **Auth backend**: `users.auth_backends.EmailAuthBackend` enables email/password auth.
-- **Login**:
-  - `/api/auth/login/` authenticates email/password, creates a session, returns a JWT.
-  - `/api/auth/guest/` requires `display_name`, creates a guest user, returns a JWT.
+- **User model**: `users.User` (UUID primary key) supports guests (`is_guest=True`).
+- **Auth backend**: `users.auth_backends.EmailAuthBackend` for email/password auth.
+- **HTTP auth**:
+  - `/api/auth/login/` creates a session and returns JWT.
+  - `/api/auth/guest/` creates a guest user and returns JWT.
+  - `/api/auth/logout/` clears the session.
+- **Rooms HTTP**:
+  - `create/join/approve` use session auth (`login_required`).
+  - `delete` uses DRF + JWT (`IsAuthenticated`).
 - **WebSockets**: JWT passed via query string (`?token=...`) and validated in `sync.jwt_middleware.JWTAuthMiddleware`.
+
+## Room Lifecycle (DB Authority)
+Rooms use an explicit lifecycle state machine:
+- **CREATED → LIVE → GRACE → EXPIRED**
+- **Any state → DELETED** (explicit host deletion)
+
+Transition helpers live on the `Room` model and enforce valid transitions only. `host_disconnected_at` is retained as a durability/audit marker, while grace timing is enforced via Redis TTL.
+
+### Grace Timing (Redis Authority)
+- Host disconnect triggers:
+  - DB: `Room.mark_grace()`
+  - Redis: `room:{code}:grace` key with TTL
+- Host reconnect clears the grace key and returns room to LIVE.
+- Lazy expiry: if a join occurs and the grace TTL key is missing while the DB is GRACE, the room is marked EXPIRED and the connection is closed.
+
+### Lifecycle Enforcement Command
+`python manage.py expire_rooms`:
+- Finds GRACE rooms past their grace deadline.
+- Marks them EXPIRED in the DB.
+- Best-effort cleanup of Redis keys (state, host status, participants, grace key).
+
+## Redis Keyspace (Canonical)
+- `room:{code}:state` → cached room state payload
+- `room:{code}:host_status` → host connection status
+- `room:{code}:participants` → set of participant display names
+- `room:{code}:viewers` → active socket count
+- `room:{code}:grace` → grace TTL key (authoritative timing)
 
 ## HTTP API Surface
 ### Auth
@@ -42,19 +76,28 @@ This backend is a Django 4.2 project with Django REST Framework for HTTP APIs an
 - `POST /api/rooms/create/` → create room (public/private + entry mode). Returns `room_password` once for private/password rooms.
 - `POST /api/rooms/join/` → join room (password or approval flow). Returns `status` (`PENDING`/`APPROVED`) and `is_host`.
 - `POST /api/rooms/approve/` → host approves a pending participant by `room_id` and `user_id`.
+- `POST /api/rooms/delete/` → host deletes a room.
+- `GET /api/rooms/public/` → public room discovery (Redis-backed).
+
+## Public Room Discovery (Redis-Backed)
+Public listing filters rooms by:
+- DB: `is_private=False`, `is_active=True`, `state=LIVE`
+- Redis: host status must be `connected`
+
+Viewer counts are derived from Redis `room:{code}:viewers` and reflect active sockets.
 
 ## Real-Time Sync (WebSockets)
-- **Endpoint**: `ws/room/<room_code>/`
+- **Endpoint**: `ws/room/<room_code>/?token=<JWT>`
 - **Consumer**: `sync.consumers.RoomPresenceConsumer`
   - Validates: authenticated user, room exists, participant approved.
   - Joins group `room_<code>` and emits presence events (`USER_JOINED`, `USER_LEFT`).
+  - Increments viewer count on successful connect; decrements on disconnect.
   - Broadcasts room events:
     - `CHAT_MESSAGE` → everyone
     - `PLAY`, `PAUSE`, `SEEK` → host only
+  - Sends `PLAYBACK_STATE` on join for sync.
   - Chat can be disabled per room (`is_chat_enabled`), returning an `ERROR` payload when disabled.
-  - Playback events include `time` payload and are ignored from non-hosts.
-  - Chat messages are real-time only and are not persisted to the database (current implementation).
-
+  - Host disconnects emit `HOST_DISCONNECTED` with grace seconds; reconnects emit `HOST_RECONNECTED`.
 
 ## Data Model
 ### User
@@ -66,10 +109,16 @@ This backend is a Django 4.2 project with Django REST Framework for HTTP APIs an
 ### Room
 - UUID primary key, unique `code`.
 - Host: FK to `User`.
-- Privacy: `is_private`, `entry_mode` (`APPROVAL` or `PASSWORD`).
+- Lifecycle: `state` (CREATED, LIVE, GRACE, EXPIRED, DELETED).
+- Privacy: `is_private`, `entry_mode` (APPROVAL or PASSWORD).
 - Optional hashed entry password (auto-generated 8-char password, shown once).
 - Media fields: `video_provider`, `video_id`.
-- `is_chat_enabled`, `is_active`.
+- `is_chat_enabled`, `is_active`, `host_disconnected_at`.
+- Grace duration: `GRACE_PERIOD_SECONDS`.
+
+### RoomPlaybackState
+- One-to-one with Room.
+- `is_playing`, `current_time`, `updated_at`.
 
 ### RoomParticipant
 - FK to `Room` and `User`.
@@ -77,14 +126,23 @@ This backend is a Django 4.2 project with Django REST Framework for HTTP APIs an
 - `joined_at`, `last_heartbeat`.
 - Unique constraint on (`room`, `user`).
 
+### ChatMessage
+- FK to `Room` and `User`.
+- `message`, `created_at`.
+- Persisted and read for `CHAT_HISTORY` on join.
+
 ## Request/Message Flow Summary
-1. **Login** via HTTP API → JWT returned.
+1. **Login** via HTTP API → session + JWT returned.
 2. **Create/Join room** via HTTP API → participant created/approved (or pending).
 3. **Connect to WebSocket** with `?token=` → consumer validates participant.
-4. **Broadcast events** (chat or playback) via channel layer to all room members.
+4. **Presence + events** flow via channel layer to all room members.
+
+## Constraints
+- Async ORM access is prohibited in WebSocket handlers; all DB access must be wrapped in `database_sync_to_async`.
+- Redis is realtime authority; DB is durable authority.
+- Public discovery has no side effects on read.
 
 ## Notes / TODO Candidates
-- Add `ALLOWED_HOSTS` and production settings.
-- Add migrations/models for `chat`, `providers`, `common` as features expand.
-- Consider move to PostgreSQL for production.
-- Consider rate limiting and audit logs for room events.
+- Add production `ALLOWED_HOSTS` and environment-based settings.
+- Consider PostgreSQL for production.
+- Add rate limiting and audit logs for room events.
