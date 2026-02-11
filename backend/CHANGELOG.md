@@ -25,6 +25,33 @@ This file is treated as a **contract** for backend behavior.
 
 ---
 
+## 2026-02-10 — Phase 2 Provider Abstraction (STABLE)
+
+### Feature
+Provider abstraction layer introduced.
+
+### Behavior
+- Rooms can now resolve provider embed URLs through a centralized provider resolver.
+- Vidking provider implemented as first supported video backend.
+- Provider URL generation supports:
+  - Movie
+  - TV (season/episode)
+  - Optional playback start time
+
+### Guarantees
+- Room model does not construct embed URLs directly.
+- Provider logic is isolated inside the providers app.
+- Switching providers does not require room model changes.
+- Existing room lifecycle, Redis state, and playback sync behavior remain unchanged.
+
+### Constraints
+- Providers must expose a deterministic embed URL.
+- No provider-specific logic is allowed inside WebSocket consumers.
+- Provider resolution must remain synchronous and pure.
+
+### Stability
+All existing lifecycle, Redis, and WebSocket authority tests remain green.
+
 ## 2026-02-10 — Phase 2 Public Room Discovery (STABLE)
 
 ### Feature
