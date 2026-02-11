@@ -5,6 +5,8 @@ from .views import (
     approve_participant_view,
     delete_room_view,
     public_rooms_view,
+    save_progress_view,
+    get_progress_view,
 )
 
 urlpatterns = [
@@ -12,5 +14,7 @@ urlpatterns = [
     path("join/", join_room_view),
     path("approve/", approve_participant_view),
     path("delete/", delete_room_view),
+    path("progress/save/", save_progress_view),
+    path("progress/get/", get_progress_view),
     path("public/", public_rooms_view),
 ]

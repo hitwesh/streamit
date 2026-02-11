@@ -13,12 +13,13 @@ from rest_framework import status
 
 import json
 
-from .models import Room, RoomParticipant
+from .models import Room, RoomParticipant, WatchProgress
 from common.redis_client import get_redis_client
 from common.redis_keys import (
     room_host_status_key,
     room_viewers_key,
 )
+from .serializers import WatchProgressSerializer
 from .services import create_room, join_room
 
 @csrf_exempt
@@ -125,6 +126,65 @@ def delete_room_view(request):
     room.save(update_fields=["is_active"])
 
     return Response({"status": "room_deleted"})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def save_progress_view(request):
+    data = request.data
+
+    room_id = data.get("room_id")
+    if not room_id:
+        return Response({"error": "room_id required"}, status=400)
+
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found"}, status=404)
+
+    progress, _ = WatchProgress.objects.update_or_create(
+        user=request.user,
+        room=room,
+        media_id=data.get("media_id"),
+        media_type=data.get("media_type"),
+        season=data.get("season"),
+        episode=data.get("episode"),
+        defaults={
+            "timestamp": data.get("timestamp", 0),
+            "duration": data.get("duration", 0),
+            "progress_percent": data.get("progress_percent", 0),
+        },
+    )
+
+    serializer = WatchProgressSerializer(progress)
+    return Response(serializer.data, status=200)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_progress_view(request):
+    room_id = request.query_params.get("room_id")
+    media_id = request.query_params.get("media_id")
+    media_type = request.query_params.get("media_type")
+
+    if not room_id or not media_id or not media_type:
+        return Response(
+            {"error": "room_id, media_id and media_type required"},
+            status=400,
+        )
+
+    try:
+        progress = WatchProgress.objects.get(
+            user=request.user,
+            room_id=room_id,
+            media_id=media_id,
+            media_type=media_type,
+        )
+    except WatchProgress.DoesNotExist:
+        return Response({"progress": None}, status=200)
+
+    serializer = WatchProgressSerializer(progress)
+    return Response(serializer.data, status=200)
 
 
 @api_view(["GET"])

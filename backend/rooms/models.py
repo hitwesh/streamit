@@ -176,3 +176,35 @@ class RoomParticipant(models.Model):
 
     def __str__(self):
         return f"{self.user} in {self.room}"
+
+
+class WatchProgress(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="watch_progress"
+    )
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="watch_progress"
+    )
+
+    media_id = models.CharField(max_length=255)
+    media_type = models.CharField(max_length=20)  # movie / tv
+
+    season = models.IntegerField(null=True, blank=True)
+    episode = models.IntegerField(null=True, blank=True)
+
+    timestamp = models.FloatField(default=0.0)
+    duration = models.FloatField(default=0.0)
+    progress_percent = models.FloatField(default=0.0)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "room", "media_id", "season", "episode")
+
+    def __str__(self):
+        return f"{self.user} - {self.media_id}"
