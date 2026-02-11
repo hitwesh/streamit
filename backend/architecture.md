@@ -1,6 +1,6 @@
 # Backend Architecture
 
-> This document reflects the backend state as of Feb 10, 2026.
+> This document reflects the backend state as of Feb 11, 2026.
 > It will evolve as features are added.
 
 ## Overview
@@ -25,7 +25,10 @@ StreamIt is a Django 4.2 backend that serves REST APIs and real-time WebSockets 
 - **sync/**: WebSocket consumer logic and JWT middleware.
 - **chat/**: Chat persistence model and chat history retrieval.
 - **common/**: Redis client and canonical Redis key helpers.
-- **providers/**: Placeholder for future provider integrations.
+- **providers/**: PlaybackSource abstraction and provider resolvers.
+  - `base.py`: PlaybackSource contract.
+  - `vidking.py`: Vidking source builder and embed URL derivation.
+  - `resolver.py`: Canonical entry point for provider resolution.
 
 ## Authentication & Authorization
 - **User model**: `users.User` (UUID primary key) supports guests (`is_guest=True`).
@@ -77,6 +80,8 @@ Transition helpers live on the `Room` model and enforce valid transitions only. 
 - `POST /api/rooms/join/` → join room (password or approval flow). Returns `status` (`PENDING`/`APPROVED`) and `is_host`.
 - `POST /api/rooms/approve/` → host approves a pending participant by `room_id` and `user_id`.
 - `POST /api/rooms/delete/` → host deletes a room.
+- `POST /api/rooms/progress/save/` → save or update watch progress (user-scoped).
+- `GET /api/rooms/progress/get/` → fetch watch progress by room/media identity.
 - `GET /api/rooms/public/` → public room discovery (Redis-backed).
 
 ## Public Room Discovery (Redis-Backed)
@@ -98,6 +103,14 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
   - Sends `PLAYBACK_STATE` on join for sync.
   - Chat can be disabled per room (`is_chat_enabled`), returning an `ERROR` payload when disabled.
   - Host disconnects emit `HOST_DISCONNECTED` with grace seconds; reconnects emit `HOST_RECONNECTED`.
+
+## PlaybackSource Abstraction
+Provider integration is centralized under `providers/` and is backend-only:
+- `PlaybackSource` defines provider, media type, external ID, optional season/episode, and capabilities.
+- `resolve_playback_source(...)` returns a normalized PlaybackSource.
+- `derive_embed_url(...)` returns provider-specific embed URLs.
+
+This keeps provider logic isolated from rooms, Redis, and lifecycle logic.
 
 ## Data Model
 ### User
@@ -125,6 +138,12 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
 - `status`: `PENDING` or `APPROVED`.
 - `joined_at`, `last_heartbeat`.
 - Unique constraint on (`room`, `user`).
+
+### WatchProgress
+- FK to `User` and `Room`.
+- Media identity: `media_id`, `media_type`, optional `season`, `episode`.
+- Progress: `timestamp`, `duration`, `progress_percent`.
+- Unique constraint on (`user`, `room`, `media_id`, `season`, `episode`).
 
 ### ChatMessage
 - FK to `Room` and `User`.
