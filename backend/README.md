@@ -13,6 +13,8 @@ Backend service for a real-time watch-together platform with rooms, chat, and sy
 - Room lifecycle state machine (CREATED → LIVE → GRACE → EXPIRED)
 - Grace period with Redis TTL and host reconnect support
 - Public room discovery with Redis-backed viewer counts
+- Provider abstraction for embed URL resolution (Vidking)
+- Per-user watch progress persistence
 - Admin panel enabled
 
 ## Tech Stack
@@ -103,6 +105,8 @@ Base path: `/api/`
 - `POST /api/rooms/join/` → Join room (password or approval flow)
 - `POST /api/rooms/approve/` → Host approves a pending participant
 - `POST /api/rooms/delete/` → Host deletes a room
+- `POST /api/rooms/progress/save/` → Save or update watch progress
+- `GET /api/rooms/progress/get/` → Retrieve watch progress by room/media
 - `GET /api/rooms/public/` → Public room discovery (Redis-backed)
 
 ## WebSocket Endpoint
@@ -150,6 +154,8 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - **Playback sync**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
 - **Lifecycle state**: Room state transitions are explicit and DB-authoritative.
 - **Grace timing**: Redis TTL controls grace; DB records state for durability.
+- **Provider abstraction**: Embed URL resolution is centralized in `providers/`.
+- **Watch progress**: Stored per user, room, and media identity.
 
 ### Maintenance Commands
 - `python manage.py expire_rooms` → Marks GRACE rooms as EXPIRED and clears related Redis keys.
