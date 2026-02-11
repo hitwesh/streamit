@@ -5,6 +5,47 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-11 — Phase 2 Media Provider Integration & Watch Progress (STABLE)
+
+### Feature
+Integrated external video provider embedding (Vidking-style) and persistent watch progress tracking.
+
+### Added
+- Public embed URL builder for movie and TV content.
+- Support for:
+	- `color`
+	- `autoPlay`
+	- `nextEpisode`
+	- `episodeSelector`
+	- `progress`
+- Structured embed URL generation at the backend level.
+- Watch progress persistence model.
+- Progress update API endpoint.
+- Progress retrieval API endpoint.
+
+### Guarantees
+- Embed URLs are generated server-side and remain canonical.
+- Watch progress is stored per:
+	- user
+	- room
+	- content ID
+- Progress is idempotent and updates safely.
+- No playback authority rules were changed.
+- No existing lifecycle behavior was modified.
+
+### Constraints
+- Provider integration does not control playback logic.
+- Playback state authority remains host-only.
+- Progress persistence does not alter WebSocket behavior.
+- No async ORM access was introduced.
+
+### Test Coverage
+- Embed URL builder validated.
+- Watch progress create/update flows tested.
+- Progress retrieval tested.
+- Public rooms unaffected.
+- Grace lifecycle unaffected.
+
 ## ⚠️ Maintenance Rule (Effective 2026-02-01)
 
 From **2026-02-01 onward**, this CHANGELOG is **strictly maintained**.
