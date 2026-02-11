@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>StreamIt Backend</h1>
+  <h1>StreamIt</h1>
   <p><strong>Real-Time Watch-Together Infrastructure</strong></p>
   <p>
     <img alt="Python" src="https://img.shields.io/badge/Python-3.11-blue" />
