@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-14 — Resume Progress API (STABLE)
+
+### Feature
+Resume endpoint for user watch progress by room code.
+
+### Behavior
+- `GET /api/rooms/<room_code>/resume/` returns progress percent, last position seconds, and completion flag.
+- When no progress exists, returns zeros and `completed=false`.
+
+### Guarantees
+- Read-only endpoint with no side effects.
+- Uses existing watch progress records; no schema changes.
+
+### Constraints
+- Progress is scoped to the authenticated user and room.
+- No Redis access required.
+
 ## 2026-02-14 — Playback Completion Finalization (STABLE)
 
 ### Feature
