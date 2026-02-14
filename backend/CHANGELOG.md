@@ -5,6 +5,25 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-14 — Host Playback Progress Sync (STABLE)
+
+### Feature
+Host playback commands now persist watch progress on PLAY, PAUSE, and SEEK.
+
+### Behavior
+- When the host sends PLAY, PAUSE, or SEEK, the room playback state updates.
+- The host's watch progress is synced to the current playback time.
+
+### Guarantees
+- Progress updates are host-authoritative.
+- Playback state and watch progress cannot drift.
+- No client-side dependency is required for host progress persistence.
+
+### Constraints
+- No change to playback authority rules.
+- No change to WebSocket message types.
+- No async ORM access outside sync-wrapped helpers.
+
 ## 2026-02-12 — Status Update (NO CHANGE)
 
 ### Notes
