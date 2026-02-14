@@ -104,6 +104,32 @@ def update_playback_state_by_room_id(room_id, is_playing, time):
 
 
 @database_sync_to_async
+def update_host_watch_progress_by_room_id(room_id, user, time):
+    """
+    Sync host playback position into WatchProgress.
+    Safe to call from async consumer.
+    """
+    from rooms.models import Room, WatchProgress
+
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return
+
+    WatchProgress.objects.update_or_create(
+        user=user,
+        room=room,
+        media_id=room.video_id,
+        media_type=room.video_provider,
+        season=None,
+        episode=None,
+        defaults={
+            "timestamp": time,
+        },
+    )
+
+
+@database_sync_to_async
 def mark_host_disconnected_by_room_id(room_id):
     Room.objects.filter(id=room_id).update(
         host_disconnected_at=timezone.now()
@@ -329,6 +355,11 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             time = data.get("time", 0)
 
             await update_playback_state_by_room_id(self.room_data["id"], is_playing, time)
+            await update_host_watch_progress_by_room_id(
+                self.room_data["id"],
+                self.user,
+                time,
+            )
 
             await self.channel_layer.group_send(
                 self.room_group_name,
