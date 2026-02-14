@@ -91,6 +91,7 @@ def get_playback_state_by_room_id(room_id):
     return {
         "is_playing": state.is_playing,
         "time": state.current_time,
+        "version": state.version,
     }
 
 
@@ -100,7 +101,14 @@ def update_playback_state_by_room_id(room_id, is_playing, time):
     state, _ = RoomPlaybackState.objects.get_or_create(room_id=room_id)
     state.is_playing = is_playing
     state.current_time = time
+    state.version += 1
     state.save()
+
+    return {
+        "is_playing": state.is_playing,
+        "time": state.current_time,
+        "version": state.version,
+    }
 
 
 @database_sync_to_async
@@ -295,6 +303,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "type": "PLAYBACK_STATE",
             "is_playing": state["is_playing"],
             "time": state["time"],
+            "version": state["version"],
         }))
 
         # 5️⃣ Notify presence
@@ -387,7 +396,11 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             is_playing = event_type == "PLAY"
             time = data.get("time", 0)
 
-            await update_playback_state_by_room_id(self.room_data["id"], is_playing, time)
+            new_state = await update_playback_state_by_room_id(
+                self.room_data["id"],
+                is_playing,
+                time,
+            )
             await update_host_watch_progress_by_room_id(
                 self.room_data["id"],
                 self.user,
@@ -399,8 +412,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "room_event",
                     "event": {
-                        "type": event_type,
-                        "time": time,
+                        "type": "PLAYBACK_STATE",
+                        "is_playing": new_state["is_playing"],
+                        "time": new_state["time"],
+                        "version": new_state["version"],
                     },
                 }
             )

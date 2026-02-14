@@ -52,7 +52,7 @@ class PlaybackAuthorityTests(TransactionTestCase):
 
         # Viewer should NOT receive their own playback event
         with self.assertRaises(AssertionError):
-            await wait_for_event(comm, "PLAY", timeout=0.3)
+            await wait_for_event(comm, "PLAYBACK_STATE", timeout=0.3)
 
     async def test_host_can_control_playback(self):
         comm = await self._connect(self.host)
@@ -62,7 +62,8 @@ class PlaybackAuthorityTests(TransactionTestCase):
         await wait_for_event(comm, "PLAYBACK_STATE")
 
         await comm.send_json_to({"type": "PLAY", "time": 50})
-        event = await wait_for_event(comm, "PLAY")
+        event = await wait_for_event(comm, "PLAYBACK_STATE")
 
-        self.assertEqual(event["type"], "PLAY")
+        self.assertEqual(event["type"], "PLAYBACK_STATE")
         self.assertEqual(event["time"], 50)
+        self.assertGreaterEqual(event["version"], 1)

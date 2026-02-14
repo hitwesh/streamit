@@ -32,8 +32,10 @@ class PlaybackLogicTests(TestCase):
         state = RoomPlaybackState.objects.create(room=self.room)
         state.is_playing = True
         state.current_time = 10
+        state.version = 1
         state.save()
 
         state.refresh_from_db()
         self.assertTrue(state.is_playing)
         self.assertEqual(state.current_time, 10)
+        self.assertEqual(state.version, 1)

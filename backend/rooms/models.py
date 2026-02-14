@@ -141,6 +141,7 @@ class RoomPlaybackState(models.Model):
     )
     is_playing = models.BooleanField(default=False)
     current_time = models.FloatField(default=0.0)
+    version = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
 class RoomParticipant(models.Model):
