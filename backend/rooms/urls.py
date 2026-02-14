@@ -7,6 +7,7 @@ from .views import (
     public_rooms_view,
     save_progress_view,
     get_progress_view,
+    resume_progress_view,
 )
 
 urlpatterns = [
@@ -16,5 +17,6 @@ urlpatterns = [
     path("delete/", delete_room_view),
     path("progress/save/", save_progress_view),
     path("progress/get/", get_progress_view),
+    path("<str:room_code>/resume/", resume_progress_view),
     path("public/", public_rooms_view),
 ]

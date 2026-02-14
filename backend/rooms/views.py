@@ -189,6 +189,35 @@ def get_progress_view(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def resume_progress_view(request, room_code):
+    try:
+        room = Room.objects.get(code=room_code)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found"}, status=404)
+
+    progress = (
+        WatchProgress.objects
+        .filter(room=room, user=request.user)
+        .order_by("-updated_at")
+        .first()
+    )
+
+    if not progress:
+        return Response({
+            "progress_percent": 0,
+            "last_position_seconds": 0,
+            "completed": False,
+        })
+
+    return Response({
+        "progress_percent": progress.progress_percent,
+        "last_position_seconds": progress.timestamp,
+        "completed": progress.completed,
+    })
+
+
+@api_view(["GET"])
 def public_rooms_view(request):
     rooms = list(
         Room.objects.filter(
