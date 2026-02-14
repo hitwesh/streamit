@@ -153,6 +153,7 @@ def save_progress_view(request):
             "timestamp": data.get("timestamp", 0),
             "duration": data.get("duration", 0),
             "progress_percent": data.get("progress_percent", 0),
+            "completed": data.get("completed", False),
         },
     )
 

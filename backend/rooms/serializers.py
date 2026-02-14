@@ -15,6 +15,7 @@ class WatchProgressSerializer(serializers.ModelSerializer):
             "timestamp",
             "duration",
             "progress_percent",
+            "completed",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]

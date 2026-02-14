@@ -130,6 +130,39 @@ def update_host_watch_progress_by_room_id(room_id, user, time):
 
 
 @database_sync_to_async
+def update_watch_progress_by_room_id(
+    *,
+    room_id,
+    user,
+    progress,
+    current_time,
+    duration,
+    completed,
+):
+    from rooms.models import Room, WatchProgress
+
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return
+
+    WatchProgress.objects.update_or_create(
+        user=user,
+        room=room,
+        media_id=room.video_id,
+        media_type=room.video_provider,
+        season=None,
+        episode=None,
+        defaults={
+            "timestamp": current_time,
+            "duration": duration,
+            "progress_percent": progress,
+            "completed": completed,
+        },
+    )
+
+
+@database_sync_to_async
 def mark_host_disconnected_by_room_id(room_id):
     Room.objects.filter(id=room_id).update(
         host_disconnected_at=timezone.now()
@@ -372,6 +405,40 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
+
+        # ---------------- PLAYER EVENTS ----------------
+        if event_type == "PLAYER_EVENT":
+            payload = data.get("data", {})
+            player_event = payload.get("event")
+
+            if self.user.id != self.room_data["host_id"]:
+                return
+
+            current_time = payload.get("currentTime", 0)
+            duration = payload.get("duration", 1)
+            progress = payload.get("progress", 0)
+
+            if player_event == "ended":
+                await update_watch_progress_by_room_id(
+                    room_id=self.room_data["id"],
+                    user=self.user,
+                    progress=100.0,
+                    current_time=duration,
+                    duration=duration,
+                    completed=True,
+                )
+                return
+
+            if player_event in {"timeupdate", "seeked", "pause"}:
+                await update_watch_progress_by_room_id(
+                    room_id=self.room_data["id"],
+                    user=self.user,
+                    progress=progress,
+                    current_time=current_time,
+                    duration=duration,
+                    completed=False,
+                )
+                return
 
     # --- Event handlers ---
     async def user_joined(self, event):

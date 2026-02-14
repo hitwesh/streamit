@@ -200,6 +200,7 @@ class WatchProgress(models.Model):
     timestamp = models.FloatField(default=0.0)
     duration = models.FloatField(default=0.0)
     progress_percent = models.FloatField(default=0.0)
+    completed = models.BooleanField(default=False)
 
     updated_at = models.DateTimeField(auto_now=True)
 
