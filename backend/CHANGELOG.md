@@ -5,6 +5,25 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-14 — Versioned Playback State (STABLE)
+
+### Feature
+Playback state now includes a monotonically increasing version and broadcasts full snapshots.
+
+### Behavior
+- Each host playback action increments the playback state version.
+- Playback broadcasts send `PLAYBACK_STATE` snapshots only (no direct PLAY/PAUSE/SEEK events).
+- Join snapshots include the current version.
+
+### Guarantees
+- Clients can ignore stale state updates using version ordering.
+- Playback state remains host-authoritative.
+
+### Constraints
+- No new endpoints introduced.
+- No Redis behavior changes.
+- Async ORM access remains sync-wrapped.
+
 ## 2026-02-14 — Resume Progress API (STABLE)
 
 ### Feature
