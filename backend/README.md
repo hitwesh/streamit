@@ -107,6 +107,7 @@ Base path: `/api/`
 - `POST /api/rooms/delete/` → Host deletes a room
 - `POST /api/rooms/progress/save/` → Save or update watch progress
 - `GET /api/rooms/progress/get/` → Retrieve watch progress by room/media
+- `GET /api/rooms/<room_code>/resume/` → Resume progress for a room
 - `GET /api/rooms/public/` → Public room discovery (Redis-backed)
 
 ## WebSocket Endpoint
@@ -125,6 +126,8 @@ The token is required for all WebSocket connections. Sessions alone are not suff
   - Payload: `{ "type": "PAUSE", "time": <seconds> }`
 - `SEEK`:
   - Payload: `{ "type": "SEEK", "time": <seconds> }`
+- `PLAYER_EVENT`:
+  - Payload: `{ "type": "PLAYER_EVENT", "data": { "event": "timeupdate|seeked|pause|ended", "currentTime": <seconds>, "duration": <seconds>, "progress": <percent> } }`
 
 ### Server → Client
 - `USER_JOINED`:
@@ -156,6 +159,7 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - **Grace timing**: Redis TTL controls grace; DB records state for durability.
 - **Provider abstraction**: Embed URL resolution is centralized in `providers/`.
 - **Watch progress**: Stored per user, room, and media identity.
+- **Playback completion**: Host `PLAYER_EVENT` ended marks progress complete.
 
 ### Maintenance Commands
 - `python manage.py expire_rooms` → Marks GRACE rooms as EXPIRED and clears related Redis keys.
