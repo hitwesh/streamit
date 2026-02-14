@@ -5,6 +5,26 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-14 — Playback Completion Finalization (STABLE)
+
+### Feature
+Playback completion now finalizes watch progress when the player emits an ended event.
+
+### Behavior
+- Host-only PLAYER_EVENT handling updates watch progress.
+- Ended events set progress to 100% and mark completion.
+- Timeupdate/seeked/pause events update progress without completion.
+
+### Guarantees
+- Completion is deterministic and host-authoritative.
+- Completed sessions resume from the beginning.
+- No change to playback authority or room lifecycle rules.
+
+### Constraints
+- No new endpoints introduced.
+- No Redis behavior changes.
+- Async ORM access remains sync-wrapped.
+
 ## 2026-02-14 — Host Playback Progress Sync (STABLE)
 
 ### Feature
