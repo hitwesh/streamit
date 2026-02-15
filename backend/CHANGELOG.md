@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-15 — Redis Chat Rate Limiting (STABLE)
+
+### Feature
+Chat messages are rate limited per user per room using Redis.
+
+### Behavior
+- Limit: 5 messages per 3 seconds per user per room.
+- Excess messages return a structured `ERROR` event.
+- No disconnections or side effects beyond the error response.
+
+### Guarantees
+- Rate limiting is enforced atomically via Redis INCR with TTL.
+- No async ORM access added to the chat path.
+
+### Constraints
+- No changes to WebSocket transport or channel layer internals.
+- No DB writes for rate limiting.
+
 ## 2026-02-15 — Drift Correction Sync Checks (STABLE)
 
 ### Feature
