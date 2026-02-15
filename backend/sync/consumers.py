@@ -230,6 +230,8 @@ def get_participant_payload_by_room_id(room_id):
 
 # ===== CONSUMER CLASS =====
 class RoomPresenceConsumer(AsyncWebsocketConsumer):
+    DRIFT_THRESHOLD_SECONDS = 2
+
     # --- Connection lifecycle ---
     async def connect(self):
         self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
@@ -455,6 +457,11 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 )
                 return
 
+        # ---------------- SYNC CHECK ----------------
+        if event_type == "SYNC_CHECK":
+            await self.handle_sync_check(data)
+            return
+
     # --- Event handlers ---
     async def user_joined(self, event):
         if event.get("exclude_channel") == self.channel_name:
@@ -520,3 +527,27 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "type": "ERROR",
             "message": message,
         }))
+
+    async def handle_sync_check(self, data):
+        client_time = data.get("client_time")
+        if client_time is None:
+            return
+
+        try:
+            client_time = float(client_time)
+        except (TypeError, ValueError):
+            return
+
+        state = await get_playback_state_by_room_id(self.room_data["id"])
+        if not state:
+            return
+
+        server_time = state.get("time", 0)
+        drift = abs(server_time - client_time)
+
+        if drift > self.DRIFT_THRESHOLD_SECONDS:
+            await self.send(text_data=json.dumps({
+                "type": "SYNC_CORRECTION",
+                "time": server_time,
+                "version": state.get("version", 0),
+            }))
