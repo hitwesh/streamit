@@ -7,7 +7,11 @@ from common.redis_keys import (
     room_host_status_key,
     room_participants_key,
     room_viewers_key,
+    chat_rate_limit_key,
 )
+
+CHAT_RATE_LIMIT_COUNT = 5
+CHAT_RATE_LIMIT_WINDOW = 3  # seconds
 
 
 # ======================
@@ -101,6 +105,21 @@ async def decrement_viewers(room_code: str):
     value = await client.decr(room_viewers_key(room_code))
     if value <= 0:
         await client.delete(room_viewers_key(room_code))
+
+
+async def is_chat_rate_limited(room_code: str, user_id: str) -> bool:
+    """
+    Returns True if user exceeded rate limit.
+    """
+    client = get_redis_client()
+    key = chat_rate_limit_key(room_code, str(user_id))
+
+    current = await client.incr(key)
+
+    if current == 1:
+        await client.expire(key, CHAT_RATE_LIMIT_WINDOW)
+
+    return current > CHAT_RATE_LIMIT_COUNT
 
 
 # ======================

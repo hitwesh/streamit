@@ -18,6 +18,7 @@ from common.redis_room_state import (
     is_in_grace,
     increment_viewers,
     decrement_viewers,
+    is_chat_rate_limited,
 )
 
 
@@ -373,6 +374,14 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
             message_text = data.get("message", "").strip()
             if not message_text:
+                return
+
+            limited = await is_chat_rate_limited(
+                self.room_data["code"],
+                self.user.id,
+            )
+            if limited:
+                await self.send_error("Too many messages. Slow down.")
                 return
 
             await save_message_by_room_id(self.room_data["id"], self.user, message_text)

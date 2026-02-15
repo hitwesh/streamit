@@ -12,3 +12,7 @@ def room_host_status_key(room_code: str) -> str:
 
 def room_viewers_key(room_code: str) -> str:
     return f"room:{room_code}:viewers"
+
+
+def chat_rate_limit_key(room_code: str, user_id: str) -> str:
+    return f"room:{room_code}:chat_rate:{user_id}"
