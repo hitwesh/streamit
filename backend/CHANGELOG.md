@@ -5,6 +5,25 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-15 — Drift Correction Sync Checks (STABLE)
+
+### Feature
+Server-side drift correction via SYNC_CHECK and SYNC_CORRECTION events.
+
+### Behavior
+- Clients can send `SYNC_CHECK` with their local playback time.
+- Server compares against authoritative playback state.
+- If drift exceeds threshold, server responds with `SYNC_CORRECTION`.
+
+### Guarantees
+- Playback remains host-authoritative.
+- Clients can self-correct without polling or manual refresh.
+
+### Constraints
+- No new endpoints introduced.
+- No Redis behavior changes.
+- Async ORM access remains sync-wrapped.
+
 ## 2026-02-14 — Versioned Playback State (STABLE)
 
 ### Feature
