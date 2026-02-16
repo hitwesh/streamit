@@ -5,24 +5,6 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
-## 2026-02-16 — Chat Hardening (STABLE)
-
-### Feature
-Chat hardening with max length enforcement, duplicate spam prevention, and history caps.
-
-### Behavior
-- Messages longer than 500 characters return an `ERROR` event.
-- Identical messages within a short window are blocked.
-- Chat history is capped to the last 500 messages per room.
-
-### Guarantees
-- Redis-backed checks remain atomic and deterministic.
-- No async ORM access added to WebSocket handlers.
-
-### Constraints
-- No new endpoints introduced.
-- No changes to playback or room lifecycle behavior.
-
 ## 2026-02-15 — Redis Chat Rate Limiting (STABLE)
 
 ### Feature
