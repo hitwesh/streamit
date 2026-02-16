@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-02-16 — Room Moderation (STABLE)
+
+### Feature
+Host moderation actions: mute, kick, and ban with Redis-backed state.
+
+### Behavior
+- Muted users cannot send chat messages.
+- Banned users are disconnected and blocked from reconnecting.
+- Kicked users are disconnected once but may reconnect.
+
+### Guarantees
+- Moderation is host-authoritative and room-scoped.
+- Enforcement is Redis-backed with no DB writes.
+
+### Constraints
+- No async ORM access added to moderation checks.
+- No channel layer internals used.
+
 ## 2026-02-16 — Chat Hardening (STABLE)
 
 ### Feature
