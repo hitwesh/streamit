@@ -20,3 +20,11 @@ def chat_rate_limit_key(room_code: str, user_id: str) -> str:
 
 def chat_duplicate_key(room_code: str, user_id: str) -> str:
     return f"room:{room_code}:chat_dup:{user_id}"
+
+
+def room_muted_users_key(room_code: str) -> str:
+    return f"room:{room_code}:muted_users"
+
+
+def room_banned_users_key(room_code: str) -> str:
+    return f"room:{room_code}:banned_users"

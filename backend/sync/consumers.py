@@ -20,6 +20,10 @@ from common.redis_room_state import (
     decrement_viewers,
     is_chat_rate_limited,
     is_duplicate_message,
+    is_user_banned,
+    mute_user,
+    is_user_muted,
+    ban_user,
 )
 
 
@@ -261,6 +265,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
 
+        if await is_user_banned(self.room_data["code"], self.user.id):
+            await self.close(code=4010)
+            return
+
         if not room["is_active"]:
             await self.close(code=4005)
             return
@@ -409,6 +417,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 await self.send_error("Duplicate message blocked.")
                 return
 
+            if await is_user_muted(self.room_data["code"], self.user.id):
+                await self.send_error("You are muted in this room")
+                return
+
             await save_message_by_room_id(self.room_data["id"], self.user, message_text)
 
             await self.channel_layer.group_send(
@@ -422,6 +434,40 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                     },
                 }
             )
+            return
+
+        # ---------------- MODERATION (HOST ONLY) ----------------
+        if event_type in {"MUTE_USER", "BAN_USER", "KICK_USER"}:
+            if self.user.id != self.room_data["host_id"]:
+                return
+
+            target_user_id = data.get("user_id")
+            if not target_user_id:
+                return
+
+            if event_type == "MUTE_USER":
+                await mute_user(self.room_data["code"], target_user_id)
+
+            if event_type == "BAN_USER":
+                await ban_user(self.room_data["code"], target_user_id)
+
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "force_disconnect",
+                        "user_id": str(target_user_id),
+                    }
+                )
+
+            if event_type == "KICK_USER":
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "force_disconnect",
+                        "user_id": str(target_user_id),
+                    }
+                )
+
             return
 
         # ---------------- PLAYBACK (HOST ONLY) ----------------
@@ -528,6 +574,10 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "type": "ROOM_DELETED"
         }))
         await self.close()
+
+    async def force_disconnect(self, event):
+        if str(self.user.id) == event.get("user_id"):
+            await self.close(code=4011)
 
     async def room_event(self, event):
         """

@@ -9,6 +9,8 @@ from common.redis_keys import (
     room_viewers_key,
     chat_rate_limit_key,
     chat_duplicate_key,
+    room_muted_users_key,
+    room_banned_users_key,
 )
 
 CHAT_RATE_LIMIT_COUNT = 5
@@ -138,6 +140,41 @@ async def is_duplicate_message(room_code: str, user_id: str, message: str) -> bo
 
     await client.set(key, message, ex=DUPLICATE_WINDOW_SECONDS)
     return False
+
+
+# ======================
+# Moderation
+# ======================
+
+async def mute_user(room_code: str, user_id: str):
+    client = get_redis_client()
+    await client.sadd(room_muted_users_key(room_code), str(user_id))
+
+
+async def unmute_user(room_code: str, user_id: str):
+    client = get_redis_client()
+    await client.srem(room_muted_users_key(room_code), str(user_id))
+
+
+async def is_user_muted(room_code: str, user_id: str) -> bool:
+    client = get_redis_client()
+    return await client.sismember(
+        room_muted_users_key(room_code),
+        str(user_id),
+    )
+
+
+async def ban_user(room_code: str, user_id: str):
+    client = get_redis_client()
+    await client.sadd(room_banned_users_key(room_code), str(user_id))
+
+
+async def is_user_banned(room_code: str, user_id: str) -> bool:
+    client = get_redis_client()
+    return await client.sismember(
+        room_banned_users_key(room_code),
+        str(user_id),
+    )
 
 
 # ======================
