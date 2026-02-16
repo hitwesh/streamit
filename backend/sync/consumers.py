@@ -19,6 +19,7 @@ from common.redis_room_state import (
     increment_viewers,
     decrement_viewers,
     is_chat_rate_limited,
+    is_duplicate_message,
 )
 
 
@@ -64,6 +65,16 @@ def save_message_by_room_id(room_id, user, text):
         user=user,
         message=text,
     )
+
+    messages = (
+        ChatMessage.objects
+        .filter(room_id=room_id)
+        .order_by("-created_at")
+        .values_list("id", flat=True)[500:]
+    )
+
+    if messages:
+        ChatMessage.objects.filter(id__in=list(messages)).delete()
 
 
 @database_sync_to_async
@@ -376,12 +387,26 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             if not message_text:
                 return
 
+            MAX_CHAT_LENGTH = 500
+            if len(message_text) > MAX_CHAT_LENGTH:
+                await self.send_error("Message too long.")
+                return
+
             limited = await is_chat_rate_limited(
                 self.room_data["code"],
                 self.user.id,
             )
             if limited:
                 await self.send_error("Too many messages. Slow down.")
+                return
+
+            duplicate = await is_duplicate_message(
+                self.room_data["code"],
+                self.user.id,
+                message_text,
+            )
+            if duplicate:
+                await self.send_error("Duplicate message blocked.")
                 return
 
             await save_message_by_room_id(self.room_data["id"], self.user, message_text)

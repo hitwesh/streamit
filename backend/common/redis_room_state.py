@@ -8,10 +8,12 @@ from common.redis_keys import (
     room_participants_key,
     room_viewers_key,
     chat_rate_limit_key,
+    chat_duplicate_key,
 )
 
 CHAT_RATE_LIMIT_COUNT = 5
 CHAT_RATE_LIMIT_WINDOW = 3  # seconds
+DUPLICATE_WINDOW_SECONDS = 3
 
 
 # ======================
@@ -120,6 +122,22 @@ async def is_chat_rate_limited(room_code: str, user_id: str) -> bool:
         await client.expire(key, CHAT_RATE_LIMIT_WINDOW)
 
     return current > CHAT_RATE_LIMIT_COUNT
+
+
+async def is_duplicate_message(room_code: str, user_id: str, message: str) -> bool:
+    """
+    Prevent sending identical messages repeatedly within short window.
+    """
+    client = get_redis_client()
+    key = chat_duplicate_key(room_code, str(user_id))
+
+    last_message = await client.get(key)
+
+    if last_message and last_message == message:
+        return True
+
+    await client.set(key, message, ex=DUPLICATE_WINDOW_SECONDS)
+    return False
 
 
 # ======================
