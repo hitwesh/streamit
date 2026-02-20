@@ -8,13 +8,18 @@ Backend service for a real-time watch-together platform with rooms, chat, and sy
 - Room participants with host roles
 - Real-time presence events (`USER_JOINED`, `USER_LEFT`)
 - Real-time chat with persistence and room-level enable/disable
-- Host-only playback controls (`PLAY`, `PAUSE`, `SEEK`)
+- Chat hardening (rate limits, duplicate suppression, max length)
+- Host moderation (mute, kick, ban) with Redis-backed enforcement
+- Host-only playback controls (versioned playback state)
 - Playback state sync for late joiners
+- Drift correction via `SYNC_CHECK` / `SYNC_CORRECTION`
 - Room lifecycle state machine (CREATED → LIVE → GRACE → EXPIRED)
 - Grace period with Redis TTL and host reconnect support
 - Public room discovery with Redis-backed viewer counts
 - Provider abstraction for embed URL resolution (Vidking)
 - Per-user watch progress persistence
+- Resume progress API by room code
+- Playback completion updates on host player events
 - Admin panel enabled
 
 ## Tech Stack
@@ -37,6 +42,7 @@ Redis is the realtime authority for:
 - Host presence
 - Viewer counts
 - Grace timing (TTL)
+- Chat rate limiting and moderation state
 
 The database is the durable authority for:
 - Room lifecycle state
@@ -120,6 +126,12 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 ### Client → Server
 - `CHAT_MESSAGE`:
   - Payload: `{ "type": "CHAT_MESSAGE", "message": "..." }`
+- `MUTE_USER`:
+  - Payload: `{ "type": "MUTE_USER", "user_id": "..." }`
+- `KICK_USER`:
+  - Payload: `{ "type": "KICK_USER", "user_id": "..." }`
+- `BAN_USER`:
+  - Payload: `{ "type": "BAN_USER", "user_id": "..." }`
 - `PLAY`:
   - Payload: `{ "type": "PLAY", "time": <seconds> }`
 - `PAUSE`:
@@ -128,6 +140,8 @@ The token is required for all WebSocket connections. Sessions alone are not suff
   - Payload: `{ "type": "SEEK", "time": <seconds> }`
 - `PLAYER_EVENT`:
   - Payload: `{ "type": "PLAYER_EVENT", "data": { "event": "timeupdate|seeked|pause|ended", "currentTime": <seconds>, "duration": <seconds>, "progress": <percent> } }`
+- `SYNC_CHECK`:
+  - Payload: `{ "type": "SYNC_CHECK", "client_time": <seconds> }`
 
 ### Server → Client
 - `USER_JOINED`:
@@ -145,21 +159,26 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - `CHAT_HISTORY`:
   - Payload: `{ "type": "CHAT_HISTORY", "messages": [...] }`
 - `PLAYBACK_STATE`:
-  - Payload: `{ "type": "PLAYBACK_STATE", "is_playing": true|false, "time": <seconds> }`
+-  - Payload: `{ "type": "PLAYBACK_STATE", "is_playing": true|false, "time": <seconds>, "version": <int> }`
+- `SYNC_CORRECTION`:
+  - Payload: `{ "type": "SYNC_CORRECTION", "time": <seconds>, "version": <int> }`
 - `ERROR`:
   - Payload: `{ "type": "ERROR", "message": "..." }`
 
 ## Development Notes
 - **Async ORM rule**: All database access in WebSocket consumers must be wrapped with `database_sync_to_async`.
 - **WebSocket auth**: JWT is mandatory and must be passed as `?token=<JWT>`.
-- **Host-only playback**: Only the room host can emit `PLAY`, `PAUSE`, and `SEEK`.
+- **Host-only playback**: Only the room host can emit playback commands or `PLAYER_EVENT`.
 - **Chat disable behavior**: When disabled, `CHAT_MESSAGE` is rejected with an `ERROR` payload.
+- **Chat hardening**: Messages over 500 chars, duplicate messages, and rate-limit violations return `ERROR`.
+- **Moderation**: Mute/ban state is Redis-backed; bans are enforced on connect.
 - **Playback sync**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
 - **Lifecycle state**: Room state transitions are explicit and DB-authoritative.
 - **Grace timing**: Redis TTL controls grace; DB records state for durability.
 - **Provider abstraction**: Embed URL resolution is centralized in `providers/`.
 - **Watch progress**: Stored per user, room, and media identity.
 - **Playback completion**: Host `PLAYER_EVENT` ended marks progress complete.
+- **Drift correction**: Clients can send `SYNC_CHECK`; server responds with `SYNC_CORRECTION` if drift > 2s.
 
 ### Maintenance Commands
 - `python manage.py expire_rooms` → Marks GRACE rooms as EXPIRED and clears related Redis keys.
