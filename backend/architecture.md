@@ -1,16 +1,16 @@
 # Backend Architecture
 
-> This document reflects the backend state as of Feb 11, 2026.
+> This document reflects the backend state as of Feb 20, 2026.
 > It will evolve as features are added.
 
 ## Overview
-StreamIt is a Django 4.2 backend that serves REST APIs and real-time WebSockets for a watch-together platform. Django REST Framework handles HTTP APIs, Django Channels handles WebSockets, and Redis provides realtime authority (presence, viewers, grace TTL). The database remains the durable source of truth for room lifecycle and metadata.
+StreamIt is a Django 4.2 backend that serves REST APIs and real-time WebSockets for a watch-together platform. Django REST Framework handles HTTP APIs, Django Channels handles WebSockets, and Redis provides realtime authority (presence, viewers, grace TTL, chat moderation/rate limits). The database remains the durable source of truth for room lifecycle and metadata.
 
 ## Runtime Stack
 - **Django**: Core HTTP handling, ORM, admin, auth.
 - **Django REST Framework**: API authentication (JWT).
 - **Django Channels + Daphne**: ASGI entry point and WebSocket support.
-- **Redis**: Channel layer, presence, viewer counts, and grace TTL.
+- **Redis**: Channel layer, presence, viewer counts, grace TTL, chat throttling, and moderation state.
 - **SQLite**: Default database (`db.sqlite3`).
 
 ## Project Layout
@@ -68,6 +68,10 @@ Transition helpers live on the `Room` model and enforce valid transitions only. 
 - `room:{code}:participants` → set of participant display names
 - `room:{code}:viewers` → active socket count
 - `room:{code}:grace` → grace TTL key (authoritative timing)
+- `room:{code}:chat_rate:{user_id}` → per-user chat rate limiting
+- `room:{code}:chat_dup:{user_id}` → duplicate message suppression window
+- `room:{code}:muted_users` → muted user IDs
+- `room:{code}:banned_users` → banned user IDs
 
 ## HTTP API Surface
 ### Auth
@@ -82,6 +86,7 @@ Transition helpers live on the `Room` model and enforce valid transitions only. 
 - `POST /api/rooms/delete/` → host deletes a room.
 - `POST /api/rooms/progress/save/` → save or update watch progress (user-scoped).
 - `GET /api/rooms/progress/get/` → fetch watch progress by room/media identity.
+- `GET /api/rooms/<room_code>/resume/` → resume watch progress by room code.
 - `GET /api/rooms/public/` → public room discovery (Redis-backed).
 
 ## Public Room Discovery (Redis-Backed)
@@ -95,14 +100,20 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
 - **Endpoint**: `ws/room/<room_code>/?token=<JWT>`
 - **Consumer**: `sync.consumers.RoomPresenceConsumer`
   - Validates: authenticated user, room exists, participant approved.
+  - Bans are enforced on connect; banned users cannot reconnect.
   - Joins group `room_<code>` and emits presence events (`USER_JOINED`, `USER_LEFT`).
   - Increments viewer count on successful connect; decrements on disconnect.
   - Broadcasts room events:
     - `CHAT_MESSAGE` → everyone
-    - `PLAY`, `PAUSE`, `SEEK` → host only
+    - `PLAYBACK_STATE` → host-only snapshot broadcast (versioned)
   - Sends `PLAYBACK_STATE` on join for sync.
   - Chat can be disabled per room (`is_chat_enabled`), returning an `ERROR` payload when disabled.
+  - Chat hardening: 500-char max, rate limiting, and duplicate suppression (errors only).
+  - Chat history on connect returns the most recent 50 messages; storage is capped at 500.
+  - Host moderation: `MUTE_USER`, `KICK_USER`, `BAN_USER` (Redis-backed).
   - Host disconnects emit `HOST_DISCONNECTED` with grace seconds; reconnects emit `HOST_RECONNECTED`.
+  - Drift correction: clients can send `SYNC_CHECK` and receive `SYNC_CORRECTION` when drift > 2s.
+  - `PLAYER_EVENT` from host updates watch progress (ended -> complete).
 
 ## PlaybackSource Abstraction
 Provider integration is centralized under `providers/` and is backend-only:
@@ -132,6 +143,7 @@ This keeps provider logic isolated from rooms, Redis, and lifecycle logic.
 ### RoomPlaybackState
 - One-to-one with Room.
 - `is_playing`, `current_time`, `updated_at`.
+- `version` increments on every host playback change.
 
 ### RoomParticipant
 - FK to `Room` and `User`.
@@ -142,7 +154,7 @@ This keeps provider logic isolated from rooms, Redis, and lifecycle logic.
 ### WatchProgress
 - FK to `User` and `Room`.
 - Media identity: `media_id`, `media_type`, optional `season`, `episode`.
-- Progress: `timestamp`, `duration`, `progress_percent`.
+- Progress: `timestamp`, `duration`, `progress_percent`, `completed`.
 - Unique constraint on (`user`, `room`, `media_id`, `season`, `episode`).
 
 ### ChatMessage
@@ -160,6 +172,7 @@ This keeps provider logic isolated from rooms, Redis, and lifecycle logic.
 - Async ORM access is prohibited in WebSocket handlers; all DB access must be wrapped in `database_sync_to_async`.
 - Redis is realtime authority; DB is durable authority.
 - Public discovery has no side effects on read.
+- Chat enforcement and moderation are Redis-only (no DB writes).
 
 ## Notes / TODO Candidates
 - Add production `ALLOWED_HOSTS` and environment-based settings.
