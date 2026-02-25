@@ -103,7 +103,7 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
   - Bans are enforced on connect; banned users cannot reconnect.
   - Joins group `room_<code>` and emits presence events (`USER_JOINED`, `USER_LEFT`).
   - Increments viewer count on successful connect; decrements on disconnect.
-  - Broadcasts room events:
+  - Broadcasts room events
     - `CHAT_MESSAGE` → everyone
     - `PLAYBACK_STATE` → host-only snapshot broadcast (versioned)
   - Sends `PLAYBACK_STATE` on join for sync.
