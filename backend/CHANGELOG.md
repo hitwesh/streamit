@@ -33,6 +33,22 @@ Sliding-window chat rate limiting with enforced cooldown.
 ### Tests
 - Chat rate limit test now avoids duplicate suppression and consumes broadcasts before asserting cooldown errors.
 
+## 2026-02-26 — Provider Registry (STABLE)
+
+### Feature
+Provider registry that maps provider names to existing builder and embed URL functions.
+
+### Behavior
+- Provider selection can be centralized via `get_provider` without changing current resolver usage.
+- Unknown providers raise a `ValueError`.
+
+### Guarantees
+- No changes to existing provider contract or resolver behavior.
+- No new provider-specific logic introduced outside `providers/`.
+
+### Tests
+- Provider registry tests added for Vidking resolution and unknown provider handling.
+
 ## 2026-02-16 — Room Moderation (STABLE)
 
 ### Feature
