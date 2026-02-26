@@ -13,6 +13,7 @@ Django==4.2.10
 djangorestframework==3.14.0
 djangorestframework_simplejwt==5.5.1
 hyperlink==21.0.0
+httpx==0.27.0
 idna==3.11
 Incremental==24.11.0
 msgpack==1.1.2

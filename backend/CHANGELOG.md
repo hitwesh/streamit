@@ -12,6 +12,27 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-02-26 — Provider Search Layer (STABLE)
+
+### Feature
+Normalized provider search backed by TMDB with Redis caching.
+
+### Behavior
+- `GET /api/rooms/search/?q=<query>&page=<n>` returns normalized search results.
+- Search results use a provider-agnostic contract (`ContentSearchResult`).
+- Results are cached in Redis for 1 hour to reduce TMDB calls.
+
+### Guarantees
+- Search does not touch playback state or room lifecycle.
+- Provider selection remains isolated inside `providers/`.
+
+### Constraints
+- Requires `TMDB_API_KEY` to be set in the environment.
+- No provider-specific response formats leak to clients.
+
+### Tests
+- Provider search is validated with a mocked TMDB response.
+
 ## 2026-02-26 — Industrial Chat Rate Limiting (STABLE)
 
 ### Feature

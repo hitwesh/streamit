@@ -1,7 +1,10 @@
 # providers/base.py
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Dict, List, Optional
+
+from providers.search_types import ContentSearchResult
 
 
 @dataclass(frozen=True)
@@ -16,3 +19,14 @@ class PlaybackSource:
     supports_progress: bool = False
 
     capabilities: Dict[str, bool] = None
+
+
+class BaseProvider(ABC):
+    name: str
+
+    @abstractmethod
+    async def search(self, query: str, page: int = 1) -> List[ContentSearchResult]:
+        """
+        Search provider content and return normalized results.
+        """
+        raise NotImplementedError

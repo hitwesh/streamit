@@ -1,6 +1,8 @@
 # providers/vidking.py
 
-from providers.base import PlaybackSource
+from providers.base import BaseProvider, PlaybackSource
+from providers.search_types import ContentSearchResult
+from providers.tmdb_client import search_tmdb
 
 
 VIDKING_BASE_URL = "https://www.vidking.net/embed"
@@ -44,3 +46,41 @@ def derive_vidking_embed_url(source: PlaybackSource) -> str:
         f"{VIDKING_BASE_URL}/tv/"
         f"{source.external_id}/{source.season}/{source.episode}"
     )
+
+
+class VidkingProvider(BaseProvider):
+    name = "vidking"
+
+    async def search(self, query: str, page: int = 1) -> list[ContentSearchResult]:
+        data = await search_tmdb(query, page)
+
+        results: list[ContentSearchResult] = []
+
+        for item in data.get("results", []):
+            media_type = item.get("media_type")
+            if media_type not in ["movie", "tv"]:
+                continue
+
+            title = item.get("title") or item.get("name")
+            poster_path = item.get("poster_path")
+            poster = (
+                f"https://image.tmdb.org/t/p/w500{poster_path}"
+                if poster_path
+                else None
+            )
+
+            release_date = item.get("release_date") or item.get("first_air_date")
+            release_year = int(release_date[:4]) if release_date else None
+
+            results.append(
+                ContentSearchResult(
+                    provider="vidking",
+                    stream_id=str(item.get("id")),
+                    media_type=media_type,
+                    title=title or "",
+                    poster=poster,
+                    release_year=release_year,
+                )
+            )
+
+        return results

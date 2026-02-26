@@ -19,6 +19,7 @@ from common.redis_keys import (
     room_host_status_key,
     room_viewers_key,
 )
+from providers.registry import get_provider
 from .serializers import WatchProgressSerializer
 from .services import create_room, join_room
 
@@ -256,3 +257,32 @@ def public_rooms_view(request):
 
     data = async_to_sync(build_response)(rooms)
     return Response(data)
+
+
+@api_view(["GET"])
+async def search_content(request):
+    query = (request.GET.get("q") or "").strip()
+    if not query:
+        return Response({"error": "q required"}, status=400)
+
+    try:
+        page = int(request.GET.get("page", 1))
+    except (TypeError, ValueError):
+        return Response({"error": "page must be an integer"}, status=400)
+
+    if page < 1:
+        return Response({"error": "page must be >= 1"}, status=400)
+
+    provider = get_provider("vidking")
+    cache_key = f"search:{provider.name}:{query}:{page}"
+    client = get_redis_client()
+
+    cached = await client.get(cache_key)
+    if cached:
+        return Response(json.loads(cached))
+
+    results = await provider.search(query, page)
+    payload = [result.__dict__ for result in results]
+
+    await client.set(cache_key, json.dumps(payload), ex=3600)
+    return Response(payload)
