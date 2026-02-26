@@ -30,6 +30,9 @@ Sliding-window chat rate limiting with enforced cooldown.
 - No async ORM access added to the chat path.
 - No channel layer internals used.
 
+### Tests
+- Chat rate limit test now avoids duplicate suppression and consumes broadcasts before asserting cooldown errors.
+
 ## 2026-02-16 — Room Moderation (STABLE)
 
 ### Feature
