@@ -12,6 +12,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-02-26 — Industrial Chat Rate Limiting (STABLE)
+
+### Feature
+Sliding-window chat rate limiting with enforced cooldown.
+
+### Behavior
+- Limit: 5 messages per 3 seconds per user per room.
+- Exceeding the window triggers a 10-second cooldown.
+- During cooldown, messages are rejected immediately.
+
+### Guarantees
+- Room-scoped, user-scoped enforcement.
+- Redis-only enforcement with no DB writes.
+
+### Constraints
+- No async ORM access added to the chat path.
+- No channel layer internals used.
+
 ## 2026-02-16 — Room Moderation (STABLE)
 
 ### Feature

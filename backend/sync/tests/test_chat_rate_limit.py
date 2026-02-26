@@ -1,3 +1,5 @@
+import os
+
 from channels.testing import WebsocketCommunicator
 from django.test import TransactionTestCase
 from rest_framework_simplejwt.tokens import AccessToken
@@ -5,6 +7,10 @@ from rest_framework_simplejwt.tokens import AccessToken
 from core.asgi import application
 from rooms.models import Room, RoomParticipant
 from users.models import User
+from .utils import wait_for_event
+
+
+TEST_PASSWORD = os.getenv("TEST_USER_PASSWORD", "test-password")
 
 
 class ChatRateLimitTests(TransactionTestCase):
@@ -13,7 +19,7 @@ class ChatRateLimitTests(TransactionTestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             email="user@test.com",
-            password="pass",
+            password=TEST_PASSWORD,
             display_name="User",
         )
 
@@ -37,7 +43,7 @@ class ChatRateLimitTests(TransactionTestCase):
             f"/ws/room/{self.room.code}/?token={token}",
         )
 
-    async def test_rate_limit_blocks_excess_messages(self):
+    async def test_rate_limit_and_cooldown(self):
         comm = await self._connect()
         connected, _ = await comm.connect()
         self.assertTrue(connected)
@@ -45,21 +51,27 @@ class ChatRateLimitTests(TransactionTestCase):
         for _ in range(3):
             await comm.receive_json_from()
 
-        for _ in range(5):
+        for index in range(5):
             await comm.send_json_to({
                 "type": "CHAT_MESSAGE",
-                "message": "hello",
+                "message": f"spam-{index}",
             })
             await comm.receive_json_from()
 
         await comm.send_json_to({
             "type": "CHAT_MESSAGE",
-            "message": "spam",
+            "message": "spam-5",
         })
 
-        event = await comm.receive_json_from()
+        event = await wait_for_event(comm, "ERROR")
+        self.assertIn("Rate limit", event["message"])
 
-        self.assertEqual(event["type"], "ERROR")
-        self.assertIn("Too many", event["message"])
+        await comm.send_json_to({
+            "type": "CHAT_MESSAGE",
+            "message": "spam2",
+        })
+
+        event2 = await wait_for_event(comm, "ERROR")
+        self.assertIn("Rate limit", event2["message"])
 
         await comm.disconnect()

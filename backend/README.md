@@ -8,7 +8,7 @@ Backend service for a real-time watch-together platform with rooms, chat, and sy
 - Room participants with host roles
 - Real-time presence events (`USER_JOINED`, `USER_LEFT`)
 - Real-time chat with persistence and room-level enable/disable
-- Chat hardening (rate limits, duplicate suppression, max length)
+- Chat hardening (rate limits with cooldown, duplicate suppression, max length)
 - Host moderation (mute, kick, ban) with Redis-backed enforcement
 - Host-only playback controls (versioned playback state)
 - Playback state sync for late joiners
@@ -171,6 +171,7 @@ The token is required for all WebSocket connections. Sessions alone are not suff
 - **Host-only playback**: Only the room host can emit playback commands or `PLAYER_EVENT`.
 - **Chat disable behavior**: When disabled, `CHAT_MESSAGE` is rejected with an `ERROR` payload.
 - **Chat hardening**: Messages over 500 chars, duplicate messages, and rate-limit violations return `ERROR`.
+- **Chat rate limit**: Sliding window of 5 messages per 3 seconds with a 10-second cooldown.
 - **Moderation**: Mute/ban state is Redis-backed; bans are enforced on connect.
 - **Playback sync**: Every successful WebSocket join emits exactly one `PLAYBACK_STATE` message.
 - **Lifecycle state**: Room state transitions are explicit and DB-authoritative.

@@ -1,4 +1,5 @@
 import json
+import time
 from django.utils import timezone
 
 from common.redis_client import get_redis_client
@@ -7,14 +8,16 @@ from common.redis_keys import (
     room_host_status_key,
     room_participants_key,
     room_viewers_key,
-    chat_rate_limit_key,
+    chat_rate_window_key,
+    chat_cooldown_key,
     chat_duplicate_key,
     room_muted_users_key,
     room_banned_users_key,
 )
 
-CHAT_RATE_LIMIT_COUNT = 5
-CHAT_RATE_LIMIT_WINDOW = 3  # seconds
+RATE_LIMIT_COUNT = 5
+RATE_LIMIT_WINDOW = 3  # seconds
+COOLDOWN_SECONDS = 10
 DUPLICATE_WINDOW_SECONDS = 3
 
 
@@ -111,19 +114,50 @@ async def decrement_viewers(room_code: str):
         await client.delete(room_viewers_key(room_code))
 
 
-async def is_chat_rate_limited(room_code: str, user_id: str) -> bool:
+async def is_chat_blocked(room_code: str, user_id: str) -> bool:
     """
-    Returns True if user exceeded rate limit.
+    Returns True if user is currently in cooldown.
     """
     client = get_redis_client()
-    key = chat_rate_limit_key(room_code, str(user_id))
+    return await client.exists(
+        chat_cooldown_key(room_code, str(user_id))
+    )
 
-    current = await client.incr(key)
 
-    if current == 1:
-        await client.expire(key, CHAT_RATE_LIMIT_WINDOW)
+async def check_and_update_rate_limit(room_code: str, user_id: str) -> bool:
+    """
+    Returns True if message should be blocked.
+    """
 
-    return current > CHAT_RATE_LIMIT_COUNT
+    client = get_redis_client()
+
+    if await is_chat_blocked(room_code, user_id):
+        return True
+
+    key = chat_rate_window_key(room_code, str(user_id))
+    now = time.time()
+
+    await client.zadd(key, {str(now): now})
+
+    await client.zremrangebyscore(
+        key,
+        0,
+        now - RATE_LIMIT_WINDOW,
+    )
+
+    count = await client.zcard(key)
+
+    if count > RATE_LIMIT_COUNT:
+        await client.set(
+            chat_cooldown_key(room_code, str(user_id)),
+            "1",
+            ex=COOLDOWN_SECONDS,
+        )
+        await client.delete(key)
+        return True
+
+    await client.expire(key, RATE_LIMIT_WINDOW)
+    return False
 
 
 async def is_duplicate_message(room_code: str, user_id: str, message: str) -> bool:

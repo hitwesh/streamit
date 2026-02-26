@@ -68,7 +68,8 @@ Transition helpers live on the `Room` model and enforce valid transitions only. 
 - `room:{code}:participants` → set of participant display names
 - `room:{code}:viewers` → active socket count
 - `room:{code}:grace` → grace TTL key (authoritative timing)
-- `room:{code}:chat_rate:{user_id}` → per-user chat rate limiting
+- `room:{code}:chat_rate_window:{user_id}` → sliding window chat rate limiting
+- `room:{code}:chat_cooldown:{user_id}` → chat cooldown enforcement
 - `room:{code}:chat_dup:{user_id}` → duplicate message suppression window
 - `room:{code}:muted_users` → muted user IDs
 - `room:{code}:banned_users` → banned user IDs
@@ -108,7 +109,7 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
     - `PLAYBACK_STATE` → host-only snapshot broadcast (versioned)
   - Sends `PLAYBACK_STATE` on join for sync.
   - Chat can be disabled per room (`is_chat_enabled`), returning an `ERROR` payload when disabled.
-  - Chat hardening: 500-char max, rate limiting, and duplicate suppression (errors only).
+  - Chat hardening: 500-char max, sliding-window rate limiting with cooldown, and duplicate suppression (errors only).
   - Chat history on connect returns the most recent 50 messages; storage is capped at 500.
   - Host moderation: `MUTE_USER`, `KICK_USER`, `BAN_USER` (Redis-backed).
   - Host disconnects emit `HOST_DISCONNECTED` with grace seconds; reconnects emit `HOST_RECONNECTED`.

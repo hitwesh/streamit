@@ -18,7 +18,7 @@ from common.redis_room_state import (
     is_in_grace,
     increment_viewers,
     decrement_viewers,
-    is_chat_rate_limited,
+    check_and_update_rate_limit,
     is_duplicate_message,
     is_user_banned,
     mute_user,
@@ -400,12 +400,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 await self.send_error("Message too long.")
                 return
 
-            limited = await is_chat_rate_limited(
+            blocked = await check_and_update_rate_limit(
                 self.room_data["code"],
                 self.user.id,
             )
-            if limited:
-                await self.send_error("Too many messages. Slow down.")
+            if blocked:
+                await self.send_error("Rate limit exceeded. Please wait.")
                 return
 
             duplicate = await is_duplicate_message(
