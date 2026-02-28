@@ -12,6 +12,31 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-02-28 — Identity & Username Enforcement (STABLE)
+
+### Feature
+Identity hardening for Google and guest flows with explicit username selection and host gating.
+
+### Behavior
+- Google-created accounts no longer receive auto-generated usernames; they start with `username=None`.
+- Username-less users are blocked from hosting rooms and from joining rooms via WebSocket.
+- Guests and anonymous users cannot host rooms.
+- `POST /api/set-username/` lets authenticated users claim a username and syncs `display_name`.
+- Guest login is DB-backed and returns JWT access tokens for consistent session handling.
+
+### Guarantees
+- Hosting is allowed only for authenticated, non-guest users with a valid username.
+- WebSocket identity is derived from DB state, not client payloads.
+- Username uniqueness is enforced case-insensitively at the API level.
+
+### Constraints
+- No playback or room lifecycle logic changes.
+- Username format is limited to 3-20 characters, alphanumeric or underscore.
+- Allauth uses a custom account adapter to prevent silent username assignment.
+
+### Tests
+- Username completion flow tested with success and duplicate rejection cases.
+
 ## 2026-02-26 — Provider Search Layer (STABLE)
 
 ### Feature
