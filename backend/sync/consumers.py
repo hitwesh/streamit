@@ -258,12 +258,23 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
 
+        if not self.user.username:
+            await self.close(code=4003)
+            return
+
         # 2️⃣ Room existence
         self.room_data = await get_room_snapshot(self.room_code)
         room = self.room_data
         if not room:
             await self.close(code=4002)
             return
+
+        if self.user.is_guest:
+            self.role = "participant"
+        elif self.user.id == self.room_data["host_id"]:
+            self.role = "host"
+        else:
+            self.role = "participant"
 
         if await is_user_banned(self.room_data["code"], self.user.id):
             await self.close(code=4010)

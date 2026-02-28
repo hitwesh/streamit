@@ -124,7 +124,6 @@ Provider integration is centralized under `providers/` and is backend-only:
 
 This keeps provider logic isolated from rooms, Redis, and lifecycle logic.
 
-
 ## Data Model
 ### User
 - UUID primary key.

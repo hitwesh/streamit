@@ -35,10 +35,15 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sites",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+
     "rest_framework",          
     "channels",
     "users",
@@ -55,6 +60,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -112,10 +118,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = "users.User"
 
-AUTHENTICATION_BACKENDS = [
-    "users.auth_backends.EmailAuthBackend",
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-]
+    "users.auth_backends.EmailAuthBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+ACCOUNT_ADAPTER = "users.adapters.CustomAccountAdapter"
 
 
 

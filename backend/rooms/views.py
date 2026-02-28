@@ -27,6 +27,25 @@ from .services import create_room, join_room
 @require_POST
 @login_required
 def create_room_view(request):
+    if request.user.is_anonymous or request.user.is_guest:
+        return Response(
+            {
+                "type": "ERROR",
+                "code": "AUTH_REQUIRED",
+                "message": "Login required to host",
+            },
+            status=403,
+        )
+
+    if not request.user.username:
+        return Response(
+            {
+                "code": "USERNAME_REQUIRED",
+                "message": "Please set a username first.",
+            },
+            status=403,
+        )
+
     data = json.loads(request.body)
 
     is_private = data.get("is_private", False)
