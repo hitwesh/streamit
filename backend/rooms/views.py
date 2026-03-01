@@ -22,6 +22,7 @@ from common.redis_keys import (
 from providers.registry import get_provider
 from .serializers import WatchProgressSerializer
 from .services import create_room, join_room
+from .permissions import PermissionService
 
 @csrf_exempt
 @require_POST
@@ -42,6 +43,16 @@ def create_room_view(request):
             {
                 "code": "USERNAME_REQUIRED",
                 "message": "Please set a username first.",
+            },
+            status=403,
+        )
+
+    if not PermissionService.can_host(request.user):
+        return Response(
+            {
+                "type": "ERROR",
+                "code": "AUTH_REQUIRED",
+                "message": "Login required to host",
             },
             status=403,
         )

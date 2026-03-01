@@ -7,6 +7,7 @@ from django.utils import timezone
 from chat.models import ChatMessage
 
 from rooms.models import Room, RoomParticipant
+from rooms.permissions import PermissionService
 from common.redis_room_state import (
     room_connected,
     room_disconnected,
@@ -269,9 +270,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
 
-        if self.user.is_guest:
-            self.role = "participant"
-        elif self.user.id == self.room_data["host_id"]:
+        if PermissionService.is_host(self.user, self.room_data):
             self.role = "host"
         else:
             self.role = "participant"
@@ -398,6 +397,14 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # ---------------- CHAT ----------------
         if event_type == "CHAT_MESSAGE":
+            if not PermissionService.can_chat(self.user, self.room_data):
+                await self.send(text_data=json.dumps({
+                    "type": "ERROR",
+                    "code": "CHAT_FORBIDDEN",
+                    "message": "Chat not allowed",
+                }))
+                return
+
             if not self.room_data["is_chat_enabled"]:
                 await self.send_error("Chat is disabled in this room")
                 return
@@ -449,7 +456,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # ---------------- MODERATION (HOST ONLY) ----------------
         if event_type in {"MUTE_USER", "BAN_USER", "KICK_USER"}:
-            if self.user.id != self.room_data["host_id"]:
+            if not PermissionService.can_moderate(self.user, self.room_data):
+                await self.send(text_data=json.dumps({
+                    "type": "ERROR",
+                    "code": "PERMISSION_DENIED",
+                    "message": "Only host can moderate",
+                }))
                 return
 
             target_user_id = data.get("user_id")
@@ -483,8 +495,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # ---------------- PLAYBACK (HOST ONLY) ----------------
         if event_type in {"PLAY", "PAUSE", "SEEK"}:
-            if self.user.id != self.room_data["host_id"]:
-                return  # silently ignore
+            if not PermissionService.can_control_playback(self.user, self.room_data):
+                await self.send(text_data=json.dumps({
+                    "type": "ERROR",
+                    "code": "PERMISSION_DENIED",
+                    "message": "Only host can control playback",
+                }))
+                return
 
             is_playing = event_type == "PLAY"
             time = data.get("time", 0)
@@ -519,7 +536,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             payload = data.get("data", {})
             player_event = payload.get("event")
 
-            if self.user.id != self.room_data["host_id"]:
+            if not PermissionService.can_control_playback(self.user, self.room_data):
                 return
 
             current_time = payload.get("currentTime", 0)
