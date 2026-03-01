@@ -12,6 +12,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-03-01 — Frontend Contract Freeze Prep (STABLE)
+
+### Feature
+Non-breaking contract freeze groundwork for response shapes, error codes, and event registry.
+
+### Behavior
+- Added centralized `success(...)`/`error(...)` response helpers for future API normalization.
+- Added an error code registry for consistent HTTP and WebSocket error payloads.
+- Added a WebSocket event registry to eliminate string literal drift.
+- Added `/api/v1/...` and `/ws/v1/...` routes alongside existing endpoints for a safe migration path.
+
+### Guarantees
+- No existing endpoints or WebSocket payloads were changed.
+- Existing clients remain compatible while v1 routes are introduced.
+
+### Constraints
+- This phase is preparatory only; no response shape changes have been enforced yet.
+
 ## 2026-03-01 — Centralized PermissionService (STABLE)
 
 ### Feature
