@@ -12,6 +12,29 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-03-01 — Centralized PermissionService (STABLE)
+
+### Feature
+Centralized authorization rules for hosting, playback control, moderation, and chat.
+
+### Behavior
+- Room hosting checks are centralized via `PermissionService.can_host`.
+- WebSocket role assignment derives host/participant from DB-backed permissions.
+- Moderation and playback controls return explicit permission errors when denied.
+- Chat now blocks unauthorized users with a structured `CHAT_FORBIDDEN` error.
+
+### Guarantees
+- Host authority is evaluated consistently across HTTP and WebSocket paths.
+- Permission checks are auditable and testable from a single location.
+- No changes to playback state transitions or room lifecycle rules.
+
+### Constraints
+- Permission checks remain synchronous and do not touch ORM in async contexts.
+- Username-less users remain blocked from hosting and WebSocket joins.
+
+### Tests
+- Added PermissionService unit tests for host control and guest hosting denial.
+
 ## 2026-02-28 — Identity & Username Enforcement (STABLE)
 
 ### Feature
