@@ -1,4 +1,4 @@
 from .base import *
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = []

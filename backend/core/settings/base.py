@@ -2,12 +2,16 @@
 Django settings base for core project.
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = "django-insecure-6n*(q3*l%$s5x*&r8#ey7p04t$583uhf#e2!rao#k2z$k^a5l_"
+load_dotenv(BASE_DIR / ".env")
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = False
 
@@ -114,13 +118,13 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-REDIS_URL = "redis://127.0.0.1:6379/0"
+REDIS_URL = os.getenv("REDIS_URL")
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [REDIS_URL],
         },
     },
 }
@@ -129,4 +133,18 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
 }
