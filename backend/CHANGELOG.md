@@ -12,6 +12,38 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-03-01 — Environment Config, Health Check, and Logging Baseline (STABLE)
+
+### Feature
+Completed the second production-readiness layer on top of the settings split: environment-driven secrets/config, deploy health probing, and baseline runtime logging.
+
+### Behavior
+- Added dotenv loading in `core.settings.base` and switched key runtime settings to environment sources.
+- Removed hardcoded values for:
+	- `SECRET_KEY`
+	- `REDIS_URL`
+- Updated channel layer host configuration to use `REDIS_URL` directly.
+- Added a backend-local `.env` template/config with required keys:
+	- `SECRET_KEY`
+	- `DEBUG`
+	- `REDIS_URL`
+	- `TMDB_API_KEY`
+- Added `GET /api/health/` endpoint for uptime checks and deployment probes.
+- Added root console logging configuration with default `INFO` level.
+
+### Guarantees
+- Existing functional behavior remains unchanged for local development when `.env` is present.
+- Redis connectivity is now centrally controlled by one env variable instead of duplicated literals.
+- Health checks can be performed by platforms/load balancers without touching business endpoints.
+
+### Operational Notes
+- Development `DEBUG` is now environment-controlled via `core.settings.development`.
+- `.env` remains ignored by version control to avoid leaking secrets.
+
+### Constraints
+- This phase establishes baseline observability/config only; advanced structured logging sinks/formatters are not introduced yet.
+- Secret rotation and external secret managers are still pending future production hardening phases.
+
 ## 2026-03-01 — Settings Split Foundation (STABLE)
 
 ### Feature
