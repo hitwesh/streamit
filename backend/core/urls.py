@@ -24,4 +24,7 @@ urlpatterns = [
     path("api/auth/", include("users.urls")),
     path("api/rooms/", include("rooms.urls")),
     path("api/set-username/", set_username),
+    path("api/v1/auth/", include("users.urls")),
+    path("api/v1/rooms/", include("rooms.urls")),
+    path("api/v1/set-username/", set_username),
 ]

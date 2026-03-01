@@ -1,0 +1,20 @@
+class WSEvents:
+    # Playback
+    PLAY = "PLAY"
+    PAUSE = "PAUSE"
+    SEEK = "SEEK"
+    PLAYBACK_STATE = "PLAYBACK_STATE"
+
+    # Chat
+    CHAT_MESSAGE = "CHAT_MESSAGE"
+    CHAT_HISTORY = "CHAT_HISTORY"
+
+    # Moderation
+    MUTE_USER = "MUTE_USER"
+    BAN_USER = "BAN_USER"
+    KICK_USER = "KICK_USER"
+
+    # System
+    HOST_DISCONNECTED = "HOST_DISCONNECTED"
+    ROOM_EXPIRED = "ROOM_EXPIRED"
+    ERROR = "ERROR"
