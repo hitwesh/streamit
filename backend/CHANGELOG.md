@@ -12,6 +12,35 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-03-01 — Dockerization Baseline (STABLE)
+
+### Feature
+Containerized backend runtime with a reproducible local orchestration stack.
+
+### Behavior
+- Added backend-root `Dockerfile` for ASGI deployment using Gunicorn + Uvicorn worker.
+- Added backend-root `docker-compose.yml` with 3 services:
+	- `web` (Django/ASGI app)
+	- `redis` (Redis 7)
+	- `db` (PostgreSQL 15)
+- Added `.dockerignore` to reduce build context and avoid shipping local artifacts.
+- Added runtime server dependencies required by container command:
+	- `gunicorn`
+	- `uvicorn`
+
+### Guarantees
+- Existing non-container local workflow remains unchanged.
+- Redis service contract is preserved (`REDIS_URL`-driven app config).
+- No API or WebSocket behavior changes were introduced by this phase.
+
+### Constraints
+- Database wiring remains SQLite in app settings; PostgreSQL service is provisioned but not yet active in Django DB config.
+- Compose file is a baseline for local/prod-like parity, not final production orchestration.
+
+### Operational Notes
+- Build and run from `backend/` using `docker compose up --build`.
+- Environment remains sourced through `.env` mounted via `env_file`.
+
 ## 2026-03-01 — Environment Config, Health Check, and Logging Baseline (STABLE)
 
 ### Feature
