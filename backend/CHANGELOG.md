@@ -12,6 +12,30 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 - No code was pushed.
 - No changelog-worthy behavior changes today.
 
+## 2026-03-01 — Settings Split Foundation (STABLE)
+
+### Feature
+Production-readiness configuration split introduced with environment-specific Django settings modules.
+
+### Behavior
+- Replaced single-module settings with a package split:
+	- `core.settings.base` for shared settings
+	- `core.settings.development` for local defaults (`DEBUG=True`, local hosts)
+	- `core.settings.production` for deployment defaults (`DEBUG=False`, explicit hosts)
+- Updated runtime entry points to default to development settings:
+	- `manage.py`
+	- `core/asgi.py`
+	- `core/wsgi.py`
+
+### Guarantees
+- Existing development behavior remains unchanged by default.
+- Production-specific overrides now have a dedicated module path (`DJANGO_SETTINGS_MODULE=core.settings.production`).
+- Shared app config (auth, channels, Redis, REST, allauth) stays centralized in `base.py` to avoid drift.
+
+### Constraints
+- This phase establishes structure only; no container, secret manager, or logging pipeline changes are enforced yet.
+- Current production hosts remain placeholder values pending deployment-specific configuration.
+
 ## 2026-03-01 — Frontend Contract Freeze Prep (STABLE)
 
 ### Feature
