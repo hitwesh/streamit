@@ -5,6 +5,26 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-04 — CORS Support for Local Frontend (STABLE)
+
+### Feature
+Enabled CORS handling to allow a future frontend on a different origin to call the backend.
+
+### Behavior
+- Added `corsheaders` to `INSTALLED_APPS`.
+- Added `CorsMiddleware` at the top of the middleware stack.
+- Allowed local frontend origins:
+	- `http://localhost:3000`
+	- `http://127.0.0.1:3000`
+- Enabled credentialed requests via `CORS_ALLOW_CREDENTIALS=True`.
+
+### Guarantees
+- No API or WebSocket contract changes.
+- No impact to Redis, database, or auth logic.
+
+### Validation
+- Full backend test suite passed after the change (`48/48`).
+
 ## 2026-03-04 — Local Redis Hostname Fix for Tests (STABLE)
 
 ### Issue
