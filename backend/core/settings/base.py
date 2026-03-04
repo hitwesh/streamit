@@ -2,6 +2,7 @@
 Django settings base for core project.
 """
 
+import logging
 import os
 from pathlib import Path
 import dj_database_url
@@ -138,14 +139,32 @@ REST_FRAMEWORK = {
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "standard",
         },
     },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        "rooms": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "chat": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
