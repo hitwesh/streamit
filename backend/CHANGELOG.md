@@ -5,6 +5,20 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-04 — Backend README Refresh (STABLE)
+
+### Feature
+Updated backend documentation to match the current codebase and runtime configuration.
+
+### Behavior
+- Refreshed setup instructions for settings split, env-driven config, and local Postgres usage.
+- Documented CORS, security headers, structured logging, and Prometheus metrics endpoints.
+- Aligned API and WebSocket endpoint lists with current routing and rate limits.
+- Clarified Docker workflow, environment variables, and observability entry points.
+
+### Guarantees
+- Documentation-only change; no runtime behavior changes.
+
 ## 2026-03-04 — Local ALLOWED_HOSTS Fix for runserver (STABLE)
 
 ### Issue
