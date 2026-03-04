@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django_ratelimit.decorators import ratelimit
 
 import json
 
@@ -248,6 +249,7 @@ def resume_progress_view(request, room_code):
     })
 
 
+@ratelimit(key="ip", rate="20/m", block=True)
 @api_view(["GET"])
 def public_rooms_view(request):
     rooms = list(
@@ -289,6 +291,7 @@ def public_rooms_view(request):
     return Response(data)
 
 
+@ratelimit(key="ip", rate="10/m", block=True)
 @api_view(["GET"])
 async def search_content(request):
     query = (request.GET.get("q") or "").strip()
