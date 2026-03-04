@@ -5,6 +5,26 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-04 — Local Redis Hostname Fix for Tests (STABLE)
+
+### Issue
+Local test runs failed because Redis was configured with a Docker-only hostname (`redis`).
+
+### Behavior
+- Updated backend `.env` to use local Redis loopback:
+	- `REDIS_URL=redis://127.0.0.1:6379/0`
+- Kept Docker behavior intact by overriding container runtime env in `docker-compose.yml`:
+	- `REDIS_URL=redis://redis:6379/0`
+	- `DATABASE_URL=postgresql://streamit:streamit@db:5432/streamit`
+
+### Guarantees
+- Local host-based runs now resolve Redis correctly.
+- Docker Compose web service still resolves Redis/Postgres via service DNS (`redis`, `db`).
+- No API or WebSocket contract changes were introduced.
+
+### Validation
+- Full backend test suite passed after the change (`48/48`).
+
 ## 2026-03-02 — Status Update (NO CHANGE)
 
 ### Notes
