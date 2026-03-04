@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-04 — Local ALLOWED_HOSTS Fix for runserver (STABLE)
+
+### Issue
+Running `manage.py runserver` with `DEBUG=False` failed due to empty `ALLOWED_HOSTS`.
+
+### Behavior
+- Added local loopback hosts to development settings:
+	- `localhost`
+	- `127.0.0.1`
+	- `[::1]`
+
+### Guarantees
+- Only the development settings module changed.
+- No API or WebSocket contract changes.
+
+### Validation
+- Full backend test suite passed after the change (`48/48`).
+
 ## 2026-03-04 — Structured Logging Configuration (STABLE)
 
 ### Feature
