@@ -5,6 +5,27 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-04 — Structured Logging Configuration (STABLE)
+
+### Feature
+Standardized log output formatting across the backend for clearer operational visibility.
+
+### Behavior
+- Added a structured log formatter: `%(asctime)s | %(levelname)s | %(name)s | %(message)s`.
+- Wired the formatter to the console handler.
+- Configured explicit loggers for:
+	- `django`
+	- `rooms`
+	- `chat`
+- Kept `disable_existing_loggers=False` to avoid suppressing framework logs.
+
+### Guarantees
+- No API or WebSocket contract changes.
+- No functional changes to business logic.
+
+### Validation
+- Full backend test suite passed after the change (`48/48`).
+
 ## 2026-03-04 — CORS Support for Local Frontend (STABLE)
 
 ### Feature
