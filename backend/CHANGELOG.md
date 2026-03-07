@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-07 — Startup Room Recovery (STABLE)
+
+### Feature
+Added boot-time reconciliation to self-heal LIVE rooms after crashes.
+
+### Behavior
+- New recovery service checks LIVE rooms against Redis state on startup.
+- Rooms missing Redis state move to GRACE; if grace is already expired, they are marked EXPIRED.
+- Recovery runs in `RoomsConfig.ready` and is skipped during tests and autoreload child process.
+
+### Guarantees
+- No API or WebSocket contract changes.
+- No behavior changes during normal request handling; recovery runs only at startup.
+
+### Validation
+- Full test suite blocked locally due to Redis not running (`ConnectionRefusedError` on 127.0.0.1:6379).
+
 ## 2026-03-04 — Backend README Refresh (STABLE)
 
 ### Feature
