@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-07 — Health Endpoint and Request ID Middleware (STABLE)
+
+### Feature
+Added production-style health checks and per-request IDs for easier observability.
+
+### Behavior
+- Added `GET /health` returning `status`, `database`, and `redis` health.
+- Kept `GET /api/health` returning `{ "status": "ok" }` for compatibility.
+- Added `RequestIDMiddleware` to attach `X-Request-ID` to every response.
+
+### Guarantees
+- No API or WebSocket contract changes beyond the new `/health` endpoint.
+- Existing `/api/health` behavior unchanged.
+
+### Validation
+- Full test suite not re-run locally because Redis was not running.
+
 ## 2026-03-07 — Startup Room Recovery (STABLE)
 
 ### Feature
