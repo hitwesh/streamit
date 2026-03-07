@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "channels",
     "users",
-    "rooms",
+    "rooms.apps.RoomsConfig",
     "sync",
     "chat",
     "providers",
