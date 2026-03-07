@@ -18,13 +18,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django_prometheus import exports
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from users.views import set_username
-from core.views import health_check
+from core.views import health_check as api_health_check
+from common.views import health_check as root_health_check
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("metrics/", exports.ExportToDjangoView, name="metrics"),
-    path("api/health/", health_check),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
+    path("health/", root_health_check),
+    path("api/health/", api_health_check),
     path("api/auth/", include("users.urls")),
     path("api/rooms/", include("rooms.urls")),
     path("api/set-username/", set_username),

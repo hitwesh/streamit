@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 
-from asgiref.sync import async_to_sync
 from django.apps import AppConfig
 
 
@@ -23,6 +22,6 @@ class RoomsConfig(AppConfig):
         from .services.recovery import recover_live_rooms
 
         try:
-            async_to_sync(recover_live_rooms)()
+            recover_live_rooms()
         except Exception:
             logger.exception("Startup recovery failed")

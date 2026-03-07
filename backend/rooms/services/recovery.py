@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
 from django.utils import timezone
 
 from common.redis_client import get_redis_client
@@ -10,7 +11,7 @@ from rooms.models import Room
 logger = logging.getLogger(__name__)
 
 
-async def recover_live_rooms():
+def recover_live_rooms():
     """
     Runs at server startup to reconcile DB and Redis state.
     """
@@ -22,7 +23,7 @@ async def recover_live_rooms():
         key = room_state_key(room.code)
 
         try:
-            exists = await redis.exists(key)
+            exists = async_to_sync(redis.exists)(key)
         except Exception as exc:
             logger.error(
                 "Live room recovery skipped due to Redis error.",
