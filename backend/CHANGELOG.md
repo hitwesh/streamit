@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-08 — Room Recovery Management Command (STABLE)
+
+### Feature
+Moved room recovery from app startup into an explicit management command.
+
+### Behavior
+- Added `recover_rooms` management command to reconcile LIVE rooms against Redis state.
+- Removed automatic recovery from `RoomsConfig.ready`.
+- Recovery logic remains the same: missing Redis state moves rooms to GRACE; expired grace marks rooms EXPIRED.
+
+### Guarantees
+- No API or WebSocket contract changes.
+- Startup no longer performs recovery automatically; recovery is now opt-in via command.
+
+### Validation
+- Not run locally.
+
 ## 2026-03-07 — Health Endpoint and Request ID Middleware (STABLE)
 
 ### Feature
