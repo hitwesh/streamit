@@ -5,6 +5,28 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — Room Route Compatibility and Visibility Fixes (STABLE)
+
+### Feature
+Hardened the room page for Next.js 16 route params behavior and improved baseline room UI visibility.
+
+### Behavior
+- Updated `frontend/app/room/[code]/page.tsx` to use `useParams()` in a client component instead of direct `params.code` access.
+- Added a guard to skip socket connect logic when `roomCode` is empty.
+- Updated `frontend/lib/websocket.ts` transport error logging from `console.error` to `console.warn` with `url` and `readyState` context to avoid noisy dev overlays for opaque browser WebSocket errors.
+- Updated `frontend/components/Player.tsx` to render a visible placeholder when no stream URL is configured:
+	- Uses `NEXT_PUBLIC_DEMO_STREAM_URL` when set.
+	- Shows `Player Ready` fallback text when unset.
+- Improved room panel contrast in `frontend/app/room/[code]/page.tsx` and chat input styling in `frontend/components/Chat.tsx` so the room is visibly usable before full media wiring.
+
+### Guarantees
+- No backend behavior, API, or WebSocket protocol changes.
+- Changes stay within current frontend scope (routing compatibility, logging ergonomics, and UI scaffold visibility).
+
+### Validation
+- No TypeScript compiler errors in updated files.
+- Not run locally.
+
 ## 2026-03-09 — Global Room State Store (STABLE)
 
 ### Feature
