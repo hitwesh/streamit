@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — Frontend Scaffold (STABLE)
+
+### Feature
+Added an initial Next.js frontend scaffold.
+
+### Behavior
+- Created a Next.js app using the App Router with a starter home page.
+- Added baseline dependencies for client work: React, Next.js, axios, react-player, and zustand.
+- Added TypeScript, ESLint, and Tailwind CSS tooling.
+
+### Guarantees
+- No backend behavior or API contract changes.
+- Frontend is a standalone scaffold with no backend integration yet.
+
+### Validation
+- Not run locally.
+
 ## 2026-03-08 — Room Recovery Management Command (STABLE)
 
 ### Feature
