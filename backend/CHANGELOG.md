@@ -5,6 +5,40 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — Room Page Layout and Component Scaffold (STABLE)
+
+### Feature
+Built the room page layout and isolated UI components for the watch-party experience.
+
+### Behavior
+- Updated `frontend/app/room/[code]/page.tsx` with a three-zone layout:
+  - Full-height video player area (`flex-1`, black background).
+  - Side-by-side participants panel (1/3 width) and chat panel (2/3 width), fixed at `h-80`.
+  - Playback controls bar fixed at `h-16`.
+- Created `frontend/components/Player.tsx`:
+  - Wraps `react-player` (already a declared dependency).
+  - Accepts `roomCode` prop; seek/sync wiring deferred to Zustand state step.
+- Created `frontend/components/Chat.tsx`:
+  - Controlled input with Enter key support.
+  - Sends `CHAT_MESSAGE` via `sendMessage()` from the WebSocket manager.
+  - Message list area stubbed, ready for Zustand state.
+- Created `frontend/components/Participants.tsx`:
+  - Renders participant list from local state.
+  - Ready to receive `ROOM_PARTICIPANTS`, `USER_JOINED`, and `USER_LEFT` events.
+- Created `frontend/components/Controls.tsx`:
+  - Play and Pause buttons send typed `PLAY`/`PAUSE` events via `sendMessage()`.
+  - `time` field defaults to `0`; will read from shared Zustand state in next step.
+  - Host-only rendering deferred to Zustand state step.
+
+### Guarantees
+- No backend behavior or API contract changes.
+- No existing files broken; only `app/room/[code]/page.tsx` was modified (layout only).
+- All WS connection and event-routing logic in the room page is unchanged.
+
+### Validation
+- No TypeScript compiler errors.
+- Not run locally.
+
 ## 2026-03-09 — WebSocket Manager and Room Page Scaffold (STABLE)
 
 ### Feature
