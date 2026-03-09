@@ -5,6 +5,35 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — WebSocket Manager and Room Page Scaffold (STABLE)
+
+### Feature
+Added a central WebSocket manager and a scaffold room page for the frontend.
+
+### Behavior
+- Created `frontend/lib/websocket.ts` as the single shared WebSocket entry point.
+  - Exposes `connectToRoom()`, `sendMessage()`, `addMessageHandler()`, and `disconnectSocket()`.
+  - Auto-reconnects on unexpected close; reconnect loop is suppressed on intentional disconnect.
+  - `addMessageHandler` returns an unsubscribe function to prevent memory leaks on unmount.
+  - Full TypeScript discriminated unions for `ClientEvent` and `ServerEvent` matched to the actual backend `WSEvents` class.
+- Created `frontend/app/room/[code]/page.tsx` as the scaffold room page.
+  - Connects to the socket on mount using the JWT stored in `localStorage`.
+  - Routes all incoming server events through a typed `switch` dispatcher.
+  - Cleans up (unsubscribe + disconnect) on unmount.
+- Event contract corrected to match backend `sync/consumers.py` and `sync/events.py`:
+  - Playback uses top-level `PLAY` / `PAUSE` / `SEEK` with a `time` field, not `PLAYER_EVENT`.
+  - Server broadcasts `PLAYBACK_STATE`, not `PLAYBACK_UPDATE`.
+  - Added `ROOM_PARTICIPANTS`, `HOST_DISCONNECTED`, `HOST_RECONNECTED`, `ROOM_DELETED`, and `SYNC_CORRECTION` as typed server events.
+
+### Guarantees
+- No backend behavior or API contract changes.
+- No existing frontend files modified.
+- All components must go through `websocket.ts`; no component should open its own socket.
+
+### Validation
+- No TypeScript compiler errors.
+- Not run locally.
+
 ## 2026-03-09 — Frontend Scaffold (STABLE)
 
 ### Feature
