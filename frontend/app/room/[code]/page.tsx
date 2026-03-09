@@ -7,6 +7,7 @@ import {
   addMessageHandler,
   type ServerEvent,
 } from "@/lib/websocket"
+import { useRoomStore } from "@/store/roomStore"
 import Player from "@/components/Player"
 import Chat from "@/components/Chat"
 import Participants from "@/components/Participants"
@@ -19,32 +20,51 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     const token = localStorage.getItem("token") ?? ""
     connectToRoom(roomCode, token)
 
-    // addMessageHandler returns an unsubscribe fn — used as the cleanup below.
-    // Event routing will be moved into Zustand actions in the next step.
     const unsubscribe = addMessageHandler((event: ServerEvent) => {
+      // useRoomStore.getState() is the correct way to access the store
+      // outside of a React render (i.e. inside a plain callback).
+      const store = useRoomStore.getState()
+
       switch (event.type) {
         case "CHAT_HISTORY":
-          console.log("[WS] chat history loaded", event.messages)
+          store.loadChatHistory(event.messages)
           break
 
         case "CHAT_MESSAGE":
-          console.log("[WS] chat message", event.user, event.message)
+          // Backend broadcast omits created_at — generate client-side
+          store.addMessage({
+            user: event.user,
+            message: event.message,
+            created_at: new Date().toISOString(),
+          })
           break
 
         case "PLAYBACK_STATE":
-          console.log("[WS] playback state", event)
+          store.setPlayback({
+            time: event.time,
+            is_playing: event.is_playing,
+            version: event.version,
+          })
           break
 
         case "ROOM_PARTICIPANTS":
-          console.log("[WS] participants", event.participants, "host:", event.host)
+          store.setParticipants(event.participants, event.host)
           break
 
         case "USER_JOINED":
-          console.log("[WS] user joined", event.user)
+          store.addParticipant(event.user)
           break
 
         case "USER_LEFT":
-          console.log("[WS] user left", event.user)
+          store.removeParticipant(event.user)
+          break
+
+        case "SYNC_CORRECTION":
+          store.setPlayback({
+            ...store.playback,
+            time: event.time,
+            version: event.version,
+          })
           break
 
         case "HOST_DISCONNECTED":
@@ -57,10 +77,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
         case "ROOM_DELETED":
           console.warn("[WS] room deleted")
-          break
-
-        case "SYNC_CORRECTION":
-          console.log("[WS] sync correction — seek to", event.time)
           break
 
         case "ERROR":

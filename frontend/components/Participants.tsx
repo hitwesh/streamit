@@ -1,11 +1,12 @@
+import { useRoomStore } from "@/store/roomStore"
+
 interface ParticipantsProps {
   roomCode: string
 }
 
 export default function Participants({ roomCode: _ }: ParticipantsProps) {
-  // roomCode will be used when participant list is read from Zustand state
-  // Placeholder — will populate from ROOM_PARTICIPANTS / USER_JOINED / USER_LEFT events
-  const participants: string[] = []
+  const participants = useRoomStore((s) => s.participants)
+  const host = useRoomStore((s) => s.host)
 
   return (
     <div className="p-4 h-full overflow-y-auto">
@@ -14,7 +15,9 @@ export default function Participants({ roomCode: _ }: ParticipantsProps) {
         <p className="text-sm text-gray-400">No participants yet</p>
       ) : (
         participants.map((p) => (
-          <div key={p} className="py-1 text-sm">{p}</div>
+          <div key={p} className="py-1 text-sm">
+            {p}{p === host ? " (host)" : ""}
+          </div>
         ))
       )}
     </div>

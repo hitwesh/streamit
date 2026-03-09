@@ -2,14 +2,15 @@
 
 import { useState } from "react"
 import { sendMessage } from "@/lib/websocket"
+import { useRoomStore } from "@/store/roomStore"
 
 interface ChatProps {
   roomCode: string
 }
 
 export default function Chat({ roomCode }: ChatProps) {
-  // roomCode will be used when chat history is loaded from Zustand state
   void roomCode
+  const messages = useRoomStore((s) => s.messages)
   const [message, setMessage] = useState("")
 
   const send = () => {
@@ -26,11 +27,16 @@ export default function Chat({ roomCode }: ChatProps) {
 
   return (
     <div className="p-4 flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
-        {/* chat messages rendered here once Zustand state is wired */}
+      <div className="flex-1 overflow-y-auto space-y-1">
+        {messages.map((msg, i) => (
+          <div key={i} className="text-sm">
+            <span className="font-semibold">{msg.user}:</span>{" "}
+            {msg.message}
+          </div>
+        ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
