@@ -4,12 +4,7 @@ import { useState } from "react"
 import { sendMessage } from "@/lib/websocket"
 import { useRoomStore } from "@/store/roomStore"
 
-interface ChatProps {
-  roomCode: string
-}
-
-export default function Chat({ roomCode }: ChatProps) {
-  void roomCode
+export default function Chat() {
   const messages = useRoomStore((s) => s.messages)
   const [message, setMessage] = useState("")
 

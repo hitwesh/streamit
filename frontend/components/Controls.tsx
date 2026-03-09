@@ -4,11 +4,7 @@ import { useEffect, useState } from "react"
 import { sendMessage } from "@/lib/websocket"
 import { useRoomStore } from "@/store/roomStore"
 
-interface ControlsProps {
-  roomCode: string
-}
-
-export default function Controls({ roomCode: _ }: ControlsProps) {
+export default function Controls() {
   // Host-only rendering will be gated here once auth state is wired
   const playbackTime = useRoomStore((s) => s.playback.time)
   const [seekTime, setSeekTime] = useState(0)

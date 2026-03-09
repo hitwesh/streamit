@@ -106,16 +106,16 @@ export default function RoomPage() {
       {/* Participants + Chat */}
       <div className="flex h-80 border-t border-zinc-800 bg-zinc-900/80">
         <div className="w-1/3 border-r border-zinc-800">
-          <Participants roomCode={roomCode} />
+          <Participants />
         </div>
         <div className="flex-1">
-          <Chat roomCode={roomCode} />
+          <Chat />
         </div>
       </div>
 
       {/* Controls */}
       <div className="h-16 border-t border-zinc-800 bg-zinc-900">
-        <Controls roomCode={roomCode} />
+        <Controls />
       </div>
 
     </div>

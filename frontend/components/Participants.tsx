@@ -1,10 +1,6 @@
 import { useRoomStore } from "@/store/roomStore"
 
-interface ParticipantsProps {
-  roomCode: string
-}
-
-export default function Participants({ roomCode: _ }: ParticipantsProps) {
+export default function Participants() {
   const participants = useRoomStore((s) => s.participants)
   const host = useRoomStore((s) => s.host)
 

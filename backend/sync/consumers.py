@@ -1,6 +1,7 @@
 # ===== Imports =====
 
 import json
+import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
@@ -26,6 +27,8 @@ from common.redis_room_state import (
     is_user_muted,
     ban_user,
 )
+
+logger = logging.getLogger("sync.ws")
 
 
 # ===== Constants (event types, close codes if any) =====
@@ -256,10 +259,12 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
         # 1️⃣ Auth check
         if not self.user.is_authenticated:
+            logger.warning("WS reject: unauthenticated user | room=%s code=4001", self.room_code)
             await self.close(code=4001)
             return
 
         if not self.user.username:
+            logger.warning("WS reject: missing username | room=%s user_id=%s code=4003", self.room_code, getattr(self.user, "id", None))
             await self.close(code=4003)
             return
 
@@ -267,6 +272,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         self.room_data = await get_room_snapshot(self.room_code)
         room = self.room_data
         if not room:
+            logger.warning("WS reject: room not found | room=%s user_id=%s code=4002", self.room_code, self.user.id)
             await self.close(code=4002)
             return
 
@@ -276,16 +282,19 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             self.role = "participant"
 
         if await is_user_banned(self.room_data["code"], self.user.id):
+            logger.warning("WS reject: user banned | room=%s user_id=%s code=4010", self.room_code, self.user.id)
             await self.close(code=4010)
             return
 
         if not room["is_active"]:
+            logger.warning("WS reject: room inactive | room=%s state=%s user_id=%s code=4005", self.room_code, room["state"], self.user.id)
             await self.close(code=4005)
             return
 
         if self.room_data["state"] == Room.State.GRACE:
             if not await is_in_grace(self.room_data["code"]):
                 await mark_room_expired_by_id(self.room_data["id"])
+                logger.warning("WS reject: grace expired | room=%s user_id=%s code=4004", self.room_code, self.user.id)
                 await self.close(code=4004)
                 return
 
@@ -304,6 +313,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         # 3️⃣ Participant approval
         is_allowed = await is_approved_participant(room["id"], self.user)
         if not is_allowed:
+            logger.warning("WS reject: participant not approved | room=%s user_id=%s code=4003", self.room_code, self.user.id)
             await self.close(code=4003)
             return
 
@@ -314,6 +324,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        logger.info("WS accepted | room=%s user_id=%s role=%s", self.room_code, self.user.id, self.role)
 
         await increment_viewers(self.room_data["code"])
 

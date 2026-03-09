@@ -54,14 +54,28 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 type MessageHandler = (event: ServerEvent) => void
 const handlers = new Set<MessageHandler>()
 
+// Backend-defined policy/auth close codes from sync/consumers.py.
+const NON_RETRY_CLOSE_CODES = new Set([
+  4001, // not authenticated
+  4002, // room does not exist
+  4003, // forbidden / not approved participant
+  4004, // room grace expired
+  4005, // room inactive
+  4010, // banned user
+  4011, // force disconnect (kick/ban)
+])
+
 // ─── Internal socket factory ──────────────────────────────────────────────────
 
 function createSocket(roomCode: string, token: string): WebSocket {
+  let openedAtLeastOnce = false
+
   const ws = new WebSocket(
     `ws://localhost:8000/ws/room/${roomCode}/?token=${token}`
   )
 
   ws.onopen = () => {
+    openedAtLeastOnce = true
     console.log("[WS] connected")
     if (reconnectTimer !== null) {
       clearTimeout(reconnectTimer)
@@ -88,9 +102,30 @@ function createSocket(roomCode: string, token: string): WebSocket {
     })
   }
 
-  ws.onclose = () => {
-    console.log("[WS] closed — reconnecting in 2 s...")
+  ws.onclose = (event) => {
+    const closeCode = event.code
+    const retryable = !NON_RETRY_CLOSE_CODES.has(closeCode)
+
+    console.warn("[WS] closed", {
+      code: closeCode,
+      reason: event.reason || "(empty)",
+      wasClean: event.wasClean,
+      retryable,
+    })
+
     socket = null
+
+    // If the socket never opened, this was likely a handshake/auth/policy reject.
+    // Do not loop reconnect attempts in that state.
+    if (!openedAtLeastOnce) {
+      console.warn("[WS] reconnect skipped: initial handshake was not accepted")
+      return
+    }
+
+    if (!retryable) {
+      console.warn("[WS] reconnect skipped due to non-retryable close code")
+      return
+    }
 
     // Re-attach handlers by re-using the same createSocket call so onmessage
     // and all other handlers are wired correctly on the new socket.
@@ -109,6 +144,16 @@ function createSocket(roomCode: string, token: string): WebSocket {
 /** Open the room socket if it isn't already open. Safe to call multiple times. */
 export function connectToRoom(roomCode: string, token: string): void {
   if (socket) return
+
+  if (!roomCode) {
+    console.warn("[WS] connect skipped: missing room code")
+    return
+  }
+
+  if (!token) {
+    console.warn("[WS] connect skipped: missing token")
+    return
+  }
 
   currentRoomCode = roomCode
   currentToken = token
