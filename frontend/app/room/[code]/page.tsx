@@ -7,6 +7,10 @@ import {
   addMessageHandler,
   type ServerEvent,
 } from "@/lib/websocket"
+import Player from "@/components/Player"
+import Chat from "@/components/Chat"
+import Participants from "@/components/Participants"
+import Controls from "@/components/Controls"
 
 export default function RoomPage({ params }: { params: { code: string } }) {
   const roomCode = params.code
@@ -16,6 +20,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     connectToRoom(roomCode, token)
 
     // addMessageHandler returns an unsubscribe fn — used as the cleanup below.
+    // Event routing will be moved into Zustand actions in the next step.
     const unsubscribe = addMessageHandler((event: ServerEvent) => {
       switch (event.type) {
         case "CHAT_HISTORY":
@@ -70,5 +75,29 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     }
   }, [roomCode])
 
-  return <div>Room {roomCode}</div>
+  return (
+    <div className="h-screen flex flex-col">
+
+      {/* Player */}
+      <div className="flex-1 bg-black">
+        <Player roomCode={roomCode} />
+      </div>
+
+      {/* Participants + Chat */}
+      <div className="flex h-80 border-t">
+        <div className="w-1/3 border-r">
+          <Participants roomCode={roomCode} />
+        </div>
+        <div className="flex-1">
+          <Chat roomCode={roomCode} />
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="h-16 border-t">
+        <Controls roomCode={roomCode} />
+      </div>
+
+    </div>
+  )
 }
