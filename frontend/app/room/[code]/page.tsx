@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useParams } from "next/navigation"
 import {
   connectToRoom,
   disconnectSocket,
@@ -13,10 +14,13 @@ import Chat from "@/components/Chat"
 import Participants from "@/components/Participants"
 import Controls from "@/components/Controls"
 
-export default function RoomPage({ params }: { params: { code: string } }) {
-  const roomCode = params.code
+export default function RoomPage() {
+  const params = useParams<{ code: string }>()
+  const roomCode = params?.code ?? ""
 
   useEffect(() => {
+    if (!roomCode) return
+
     const token = localStorage.getItem("token") ?? ""
     connectToRoom(roomCode, token)
 
@@ -92,7 +96,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }, [roomCode])
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-100">
 
       {/* Player */}
       <div className="flex-1 bg-black">
@@ -100,8 +104,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       </div>
 
       {/* Participants + Chat */}
-      <div className="flex h-80 border-t">
-        <div className="w-1/3 border-r">
+      <div className="flex h-80 border-t border-zinc-800 bg-zinc-900/80">
+        <div className="w-1/3 border-r border-zinc-800">
           <Participants roomCode={roomCode} />
         </div>
         <div className="flex-1">
@@ -110,7 +114,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       </div>
 
       {/* Controls */}
-      <div className="h-16 border-t">
+      <div className="h-16 border-t border-zinc-800 bg-zinc-900">
         <Controls roomCode={roomCode} />
       </div>
 

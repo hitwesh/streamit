@@ -42,11 +42,11 @@ export default function Chat({ roomCode }: ChatProps) {
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="border p-2 flex-1"
+          className="border border-zinc-700 bg-zinc-950 text-zinc-100 rounded p-2 flex-1"
         />
         <button
           onClick={send}
-          className="bg-blue-500 text-white px-4"
+          className="bg-blue-600 text-white px-4 rounded"
         >
           Send
         </button>

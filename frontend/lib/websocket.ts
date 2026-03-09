@@ -78,8 +78,14 @@ function createSocket(roomCode: string, token: string): WebSocket {
     }
   }
 
-  ws.onerror = (error) => {
-    console.error("[WS] error", error)
+  ws.onerror = () => {
+    // Browsers intentionally provide very little detail on WebSocket errors.
+    // Use warn-level logging to avoid noisy Next.js error overlays for expected
+    // transient transport failures (server restart, network flap, auth reject).
+    console.warn("[WS] transport error", {
+      url: ws.url,
+      readyState: ws.readyState,
+    })
   }
 
   ws.onclose = () => {
