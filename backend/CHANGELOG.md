@@ -5,6 +5,36 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — Global Room State Store (STABLE)
+
+### Feature
+Added a centralized room state store using Zustand and wired WebSocket events into shared state.
+
+### Behavior
+- Created `frontend/store/roomStore.ts` with shared state for:
+	- `participants` and `host`
+	- `messages`
+	- `playback` (`time`, `is_playing`, `version`)
+- Added store actions for participant lifecycle, chat history/message updates, and playback updates.
+- Updated `frontend/app/room/[code]/page.tsx` to route incoming WebSocket events into store actions using `useRoomStore.getState()`.
+- Updated UI components to read from the shared store instead of local placeholders:
+	- `frontend/components/Chat.tsx` now renders chat messages from store.
+	- `frontend/components/Participants.tsx` now renders participants and host label from store.
+	- `frontend/components/Player.tsx` now binds `playing` state to `playback.is_playing`.
+	- `frontend/components/Controls.tsx` now sends `PLAY`/`PAUSE` with current `playback.time`.
+- Contract alignment details preserved for backend compatibility:
+	- Participant payload remains `string[]` (display names).
+	- Playback uses backend field name `is_playing`.
+	- Client generates `created_at` for live `CHAT_MESSAGE` events because backend broadcast does not include it.
+
+### Guarantees
+- No backend behavior, API, or WebSocket contract changes.
+- Change stays within current frontend scope: state management and event routing only.
+
+### Validation
+- No TypeScript compiler errors in updated frontend files.
+- Not run locally.
+
 ## 2026-03-09 — Room Page Layout and Component Scaffold (STABLE)
 
 ### Feature
