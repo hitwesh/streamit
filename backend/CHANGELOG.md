@@ -5,6 +5,27 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-09 — WebSocket Auth Fixes and Diagnostics (STABLE)
+
+### Feature
+Stabilized WebSocket authentication and added targeted diagnostics for handshake failures.
+
+### Behavior
+- Fixed WebSocket middleware order so JWT auth is applied after `AuthMiddlewareStack`:
+	- `AuthMiddlewareStack(JWTAuthMiddleware(URLRouter(...)))`
+- Added explicit WebSocket `connect()` reject logging with close-code reasons in `sync/consumers.py`.
+- Added JWT middleware diagnostics to log token presence and validation outcome in `sync/jwt_middleware.py`.
+- Preserved session-based auth when no JWT token is provided (JWT middleware now defers to existing `scope["user"]`).
+
+### Guarantees
+- No API or WebSocket protocol changes.
+- Token-based auth still required for client-side WebSocket connections.
+- Session-based auth is no longer overridden when no token is supplied.
+
+### Validation
+- WebSocket connects successfully with valid token.
+- Not run locally beyond manual handshake verification.
+
 ## 2026-03-09 — Room Route Compatibility and Visibility Fixes (STABLE)
 
 ### Feature
