@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-10 — Participant List Panel (STABLE)
+
+### Feature
+Added a dedicated participant list panel component in the frontend.
+
+### Behavior
+- Created `frontend/components/ParticipantList.tsx` to render participant names with a host badge.
+- Updated `frontend/app/room/[code]/page.tsx` to render the new panel using existing store data.
+- Mapped backend participant display names into the component’s `{ id, display_name, is_host }` shape without changing the backend payload contract.
+
+### Guarantees
+- No backend behavior or WebSocket contract changes.
+- Participant list still sources data from `ROOM_PARTICIPANTS` + `host` fields.
+
+### Validation
+- No TypeScript compiler errors.
+- Not run locally.
+
 ## 2026-03-10 — Room Grace Period Increase (STABLE)
 
 ### Feature
