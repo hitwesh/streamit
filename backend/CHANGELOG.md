@@ -5,6 +5,22 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-03-10 — Room Grace Period Increase (STABLE)
+
+### Feature
+Extended the room grace window after host disconnects.
+
+### Behavior
+- Increased `Room.GRACE_PERIOD_SECONDS` from 30 seconds to 300 seconds.
+- Room state remains `GRACE` for up to 5 minutes before expiring.
+
+### Guarantees
+- No API or WebSocket contract changes.
+- Only the grace timing window changed.
+
+### Validation
+- Not run locally.
+
 ## 2026-03-09 — WebSocket Auth Fixes and Diagnostics (STABLE)
 
 ### Feature
