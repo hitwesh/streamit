@@ -13,7 +13,7 @@ import { useRoomStore } from "@/store/roomStore"
 import VideoPlayer from "@/components/VideoPlayer"
 import PlaybackControls from "@/components/PlaybackControls"
 import Chat from "@/components/Chat"
-import Participants from "@/components/Participants"
+import ParticipantList from "@/components/ParticipantList"
 
 export default function RoomPage() {
   const params = useParams<{ code: string }>()
@@ -97,6 +97,8 @@ export default function RoomPage() {
   }, [roomCode])
 
   const playbackTime = useRoomStore((s) => s.playback.time)
+  const participants = useRoomStore((s) => s.participants)
+  const host = useRoomStore((s) => s.host)
 
   const handlePlay = () => {
     sendMessage({ type: "PLAY", time: playbackTime })
@@ -130,7 +132,13 @@ export default function RoomPage() {
           <Chat />
         </div>
         <div className="h-40 border-b border-zinc-800">
-          <Participants />
+          <ParticipantList
+            participants={participants.map((name) => ({
+              id: name,
+              display_name: name,
+              is_host: name === host,
+            }))}
+          />
         </div>
         <div className="h-16" />
       </div>
