@@ -6,13 +6,14 @@ import {
   connectToRoom,
   disconnectSocket,
   addMessageHandler,
+  sendMessage,
   type ServerEvent,
 } from "@/lib/websocket"
 import { useRoomStore } from "@/store/roomStore"
-import Player from "@/components/Player"
+import VideoPlayer from "@/components/VideoPlayer"
+import PlaybackControls from "@/components/PlaybackControls"
 import Chat from "@/components/Chat"
 import Participants from "@/components/Participants"
-import Controls from "@/components/Controls"
 
 export default function RoomPage() {
   const params = useParams<{ code: string }>()
@@ -95,29 +96,44 @@ export default function RoomPage() {
     }
   }, [roomCode])
 
-  return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-100">
+  const playbackTime = useRoomStore((s) => s.playback.time)
 
-      {/* Player */}
-      <div className="flex-1 bg-black">
-        <Player roomCode={roomCode} />
+  const handlePlay = () => {
+    sendMessage({ type: "PLAY", time: playbackTime })
+  }
+
+  const handlePause = () => {
+    sendMessage({ type: "PAUSE", time: playbackTime })
+  }
+
+  const handleSeek = (time: number) => {
+    sendMessage({ type: "SEEK", time })
+  }
+
+  return (
+    <div className="h-screen grid grid-cols-[3fr_1fr] bg-zinc-950 text-zinc-100">
+      <div className="flex flex-col">
+        <div className="flex-1 bg-black">
+          <VideoPlayer videoId="1078605" />
+        </div>
+        <div className="border-t border-zinc-800 bg-zinc-900 p-3">
+          <PlaybackControls
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onSeek={handleSeek}
+          />
+        </div>
       </div>
 
-      {/* Participants + Chat */}
-      <div className="flex h-80 border-t border-zinc-800 bg-zinc-900/80">
-        <div className="w-1/3 border-r border-zinc-800">
-          <Participants />
-        </div>
-        <div className="flex-1">
+      <div className="border-l border-zinc-800 flex flex-col bg-zinc-900/80">
+        <div className="flex-1 border-b border-zinc-800">
           <Chat />
         </div>
+        <div className="h-40 border-b border-zinc-800">
+          <Participants />
+        </div>
+        <div className="h-16" />
       </div>
-
-      {/* Controls */}
-      <div className="h-16 border-t border-zinc-800 bg-zinc-900">
-        <Controls />
-      </div>
-
     </div>
   )
 }

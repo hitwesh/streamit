@@ -68,7 +68,7 @@ class Room(models.Model):
     # NEW
     host_disconnected_at = models.DateTimeField(null=True, blank=True)
 
-    GRACE_PERIOD_SECONDS = 30  # 30 seconds for testing
+    GRACE_PERIOD_SECONDS = 300  # 5 minutes
 
     def is_in_grace(self):
         if not self.host_disconnected_at:
