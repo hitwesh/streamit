@@ -12,16 +12,35 @@ export default function ParticipantList({
   participants: Participant[]
 }) {
   return (
-    <div className="p-3">
-      <h3 className="font-semibold">Participants</h3>
+    <div className="p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
+          Participants
+        </h3>
+        <span className="text-xs text-[color:var(--color-muted)]">
+          {participants.length}
+        </span>
+      </div>
       {participants.length === 0 ? (
-        <p className="text-sm text-gray-400">No participants yet</p>
+        <p className="mt-3 text-sm text-[color:var(--color-muted)]">
+          No participants yet.
+        </p>
       ) : (
-        participants.map((p) => (
-          <div key={p.id} className="text-sm">
-            {p.display_name} {p.is_host ? "(host)" : ""}
-          </div>
-        ))
+        <div className="mt-4 space-y-2">
+          {participants.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/70 px-3 py-2 text-sm"
+            >
+              <span className="text-[color:var(--color-foreground)]">
+                {p.display_name}
+              </span>
+              {p.is_host ? (
+                <span className="badge">Host</span>
+              ) : null}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

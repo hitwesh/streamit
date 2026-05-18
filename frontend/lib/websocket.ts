@@ -1,3 +1,5 @@
+import { WS_BASE_URL } from "@/lib/api"
+
 // Central WebSocket manager — one shared socket for the entire room session.
 // All components read/write through this module; none open their own sockets.
 
@@ -54,6 +56,10 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 type MessageHandler = (event: ServerEvent) => void
 const handlers = new Set<MessageHandler>()
 
+type ConnectionState = "open" | "closed" | "error"
+type ConnectionHandler = (state: ConnectionState) => void
+const connectionHandlers = new Set<ConnectionHandler>()
+
 // Backend-defined policy/auth close codes from sync/consumers.py.
 const NON_RETRY_CLOSE_CODES = new Set([
   4001, // not authenticated
@@ -69,14 +75,16 @@ const NON_RETRY_CLOSE_CODES = new Set([
 
 function createSocket(roomCode: string, token: string): WebSocket {
   let openedAtLeastOnce = false
+  const wsBaseUrl = WS_BASE_URL || "ws://localhost:8000"
 
   const ws = new WebSocket(
-    `ws://localhost:8000/ws/room/${roomCode}/?token=${token}`
+    `${wsBaseUrl}/ws/room/${roomCode}/?token=${token}`
   )
 
   ws.onopen = () => {
     openedAtLeastOnce = true
     console.log("[WS] connected")
+    connectionHandlers.forEach((handler) => handler("open"))
     if (reconnectTimer !== null) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
@@ -100,6 +108,7 @@ function createSocket(roomCode: string, token: string): WebSocket {
       url: ws.url,
       readyState: ws.readyState,
     })
+    connectionHandlers.forEach((handler) => handler("error"))
   }
 
   ws.onclose = (event) => {
@@ -114,6 +123,7 @@ function createSocket(roomCode: string, token: string): WebSocket {
     })
 
     socket = null
+    connectionHandlers.forEach((handler) => handler("closed"))
 
     // If the socket never opened, this was likely a handshake/auth/policy reject.
     // Do not loop reconnect attempts in that state.
@@ -181,6 +191,14 @@ export function addMessageHandler(handler: MessageHandler): () => void {
   return () => handlers.delete(handler)
 }
 
+/** Register a handler for connection state changes. */
+export function addConnectionHandler(
+  handler: ConnectionHandler
+): () => void {
+  connectionHandlers.add(handler)
+  return () => connectionHandlers.delete(handler)
+}
+
 /** Close the socket and stop any pending reconnect. */
 export function disconnectSocket(): void {
   if (reconnectTimer !== null) {
@@ -195,6 +213,8 @@ export function disconnectSocket(): void {
     socket.close()
     socket = null
   }
+
+  connectionHandlers.forEach((handler) => handler("closed"))
 
   currentRoomCode = null
   currentToken = null

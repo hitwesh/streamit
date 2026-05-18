@@ -141,6 +141,104 @@ def approve_participant_view(request):
     return JsonResponse({"approved": True})
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def room_detail_view(request, room_code):
+    try:
+        room = Room.objects.select_related("host").get(code=room_code)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found"}, status=404)
+
+    is_participant = RoomParticipant.objects.filter(
+        room=room,
+        user=request.user,
+    ).exists()
+
+    if not is_participant:
+        return Response({"error": "Not a participant"}, status=403)
+
+    return Response({
+        "room_id": str(room.id),
+        "code": room.code,
+        "state": room.state,
+        "is_active": room.is_active,
+        "is_private": room.is_private,
+        "entry_mode": room.entry_mode,
+        "is_chat_enabled": room.is_chat_enabled,
+        "host": room.host.display_name,
+        "host_id": str(room.host_id),
+        "video_provider": room.video_provider,
+        "video_id": room.video_id,
+        "created_at": room.created_at.isoformat(),
+        "is_host": room.host_id == request.user.id,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def room_participants_view(request):
+    room_id = request.query_params.get("room_id")
+    if not room_id:
+        return Response({"error": "room_id required"}, status=400)
+
+    room = get_object_or_404(Room, id=room_id)
+
+    if room.host_id != request.user.id:
+        return Response({"error": "Only host can view participants"}, status=403)
+
+    participants = (
+        RoomParticipant.objects
+        .filter(room=room)
+        .select_related("user")
+    )
+
+    payload = []
+    for participant in participants:
+        payload.append({
+            "id": str(participant.user_id),
+            "display_name": participant.user.display_name,
+            "status": participant.status,
+            "is_host": participant.user_id == room.host_id,
+            "is_guest": participant.user.is_guest,
+        })
+
+    return Response(payload)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def room_source_view(request):
+    room_id = request.data.get("room_id")
+    provider = (request.data.get("provider") or "").strip()
+    video_id = (request.data.get("video_id") or "").strip()
+
+    if not room_id or not provider or not video_id:
+        return Response(
+            {"error": "room_id, provider, and video_id required"},
+            status=400,
+        )
+
+    room = get_object_or_404(Room, id=room_id)
+
+    if room.host_id != request.user.id:
+        return Response({"error": "Only host can update room media"}, status=403)
+
+    try:
+        get_provider(provider)
+    except ValueError as error:
+        return Response({"error": str(error)}, status=400)
+
+    room.video_provider = provider
+    room.video_id = video_id
+    room.save(update_fields=["video_provider", "video_id"])
+
+    return Response({
+        "room_id": str(room.id),
+        "video_provider": room.video_provider,
+        "video_id": room.video_id,
+    })
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def delete_room_view(request):

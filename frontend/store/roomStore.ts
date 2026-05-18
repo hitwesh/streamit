@@ -29,6 +29,7 @@ interface RoomStore {
   loadChatHistory: (messages: ChatMessage[]) => void
   addMessage: (msg: ChatMessage) => void
   setPlayback: (state: PlaybackState) => void
+  resetRoom: () => void
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -63,4 +64,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   setPlayback: (playback) =>
     set({ playback }),
+
+  resetRoom: () =>
+    set({
+      participants: [],
+      host: null,
+      messages: [],
+      playback: { time: 0, is_playing: false, version: 0 },
+    }),
 }))

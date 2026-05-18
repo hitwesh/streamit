@@ -112,6 +112,9 @@ Base path: `/api/` (mirrored under `/api/v1/`).
 - `POST /api/rooms/create/` -> Create room (public/private + entry mode).
 - `POST /api/rooms/join/` -> Join room (password or approval flow).
 - `POST /api/rooms/approve/` -> Host approves a pending participant.
+- `GET /api/rooms/<room_code>/detail/` -> Fetch room metadata (participant required).
+- `GET /api/rooms/participants/?room_id=<id>` -> Host-only participant roster with IDs and status.
+- `POST /api/rooms/source/` -> Host sets playback provider and video ID for a room.
 - `POST /api/rooms/delete/` -> Host deletes a room.
 - `POST /api/rooms/progress/save/` -> Save or update watch progress.
 - `GET /api/rooms/progress/get/` -> Retrieve watch progress by room/media.

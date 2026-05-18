@@ -1,28 +1,179 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sand-50: #f7f3ed;
+  --sand-100: #f0e7dc;
+  --sand-200: #e5d7c7;
+  --ink-900: #111111;
+  --ink-700: #3a3a3a;
+  --ink-500: #5f5f5f;
+  --teal-500: #0f766e;
+  --teal-600: #0b5f58;
+  --panel: #fffdf8;
+  --border: rgba(17, 17, 17, 0.12);
+  --shadow: 0 22px 55px rgba(17, 17, 17, 0.14);
+  --color-muted: var(--ink-500);
+  --color-foreground: var(--ink-900);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--sand-50);
+  --color-foreground: var(--ink-900);
+  --color-muted: var(--ink-500);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-accent: var(--teal-500);
+  --color-accent-strong: var(--teal-600);
+  --font-sans: var(--font-space);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background-color: var(--sand-50);
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(15, 118, 110, 0.14), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(17, 17, 17, 0.08), transparent 48%),
+    linear-gradient(180deg, #f7f3ed 0%, #f4eee6 100%);
+  background-attachment: fixed;
+  color: var(--ink-900);
+  font-family: var(--font-space), sans-serif;
 }
 
-.
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .panel-soft {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    border-radius: 24px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease,
+      background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .btn-primary {
+    background: var(--teal-500);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 118, 110, 0.2);
+  }
+
+  .btn-primary:hover {
+    background: var(--teal-600);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--ink-900);
+  }
+
+  .btn-ghost {
+    background: rgba(17, 17, 17, 0.06);
+    color: var(--ink-900);
+  }
+
+  .input {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    color: var(--ink-900);
+  }
+
+  .input:focus {
+    outline: 2px solid rgba(15, 118, 110, 0.35);
+    outline-offset: 1px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.12);
+    color: var(--teal-600);
+    padding: 0.15rem 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-rise {
+    animation: rise 0.7s ease both;
+  }
+
+  .animate-delay-1 {
+    animation-delay: 0.12s;
+  }
+
+  .animate-delay-2 {
+    animation-delay: 0.24s;
+  }
+
+  .animate-delay-3 {
+    animation-delay: 0.36s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-delay-1,
+  .animate-delay-2,
+  .animate-delay-3 {
+    animation: none;
+  }
+}
