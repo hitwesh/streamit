@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-05-18 — Streaming Platform UI Redesign (STABLE)
+
+### Feature
+- Rebuilt the frontend into a streaming-first experience with discover, auth, creator dashboard, and profile pages.
+
+### Behavior
+- Homepage now prioritizes public stream discovery with featured live content, search, categories, and activity stats.
+- Added dedicated `/login` and `/signup` routes to keep authentication off the homepage.
+- Modernized the room viewing layout with a theater player, stream metadata, and refreshed chat/participant/moderation panels.
+- Added creator dashboard and profile pages wired to existing room and session APIs.
+
+### Guarantees
+- No backend or API contract changes.
+- No new dependencies added.
+
+### Validation
+- Not run locally.
+
 ## 2026-05-18 — UI Polishing (STABLE)
 
 ### Feature

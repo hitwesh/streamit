@@ -54,13 +54,13 @@ export default function Player({ onPlayerEvent, isHost = false }: PlayerProps) {
 
   if (!demoStreamUrl) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-black text-zinc-200">
+      <div className="flex h-full w-full items-center justify-center rounded-2xl border border-white/10 bg-black/80 text-[color:var(--color-foreground)]">
         <div className="text-center space-y-2">
           <p className="text-lg font-semibold">Player Ready</p>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-[color:var(--color-muted)]">
             Set `NEXT_PUBLIC_DEMO_STREAM_URL` to render video.
           </p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[color:var(--color-muted)]">
             Playback: {is_playing ? "playing" : "paused"} @ {time.toFixed(1)}s
           </p>
         </div>

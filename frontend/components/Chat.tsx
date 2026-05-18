@@ -47,7 +47,10 @@ export default function Chat({
               : formatter.format(new Date(parsed))
 
             return (
-              <div key={i} className="rounded-2xl border border-black/5 bg-white/70 px-3 py-2">
+              <div
+                key={i}
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
+              >
                 <div className="flex items-baseline justify-between text-xs text-[color:var(--color-muted)]">
                   <span className="font-medium text-[color:var(--color-foreground)]">
                     {msg.user}

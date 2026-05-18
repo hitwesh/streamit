@@ -23,13 +23,13 @@ export default function Controls() {
     <div className="flex items-center justify-center gap-4 h-full px-4">
       <button
         onClick={() => sendMessage({ type: "PLAY", time: playbackTime })}
-        className="px-4 py-2 bg-green-600 text-white rounded"
+        className="btn btn-primary"
       >
         Play
       </button>
       <button
         onClick={() => sendMessage({ type: "PAUSE", time: playbackTime })}
-        className="px-4 py-2 bg-yellow-500 text-white rounded"
+        className="btn btn-outline"
       >
         Pause
       </button>
@@ -39,11 +39,11 @@ export default function Controls() {
         step={1}
         value={Number.isFinite(seekTime) ? seekTime : 0}
         onChange={(e) => setSeekTime(Number(e.target.value) || 0)}
-        className="w-28 border rounded px-2 py-2"
+        className="input w-28"
       />
       <button
         onClick={sendSeek}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
+        className="btn btn-ghost"
       >
         Seek
       </button>

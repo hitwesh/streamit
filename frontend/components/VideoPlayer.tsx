@@ -48,7 +48,7 @@ export default function VideoPlayer({
 
   if (!src) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-3xl border border-dashed border-black/10 bg-white/70 text-sm text-[color:var(--color-muted)]">
+      <div className="flex h-full w-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/60 text-sm text-[color:var(--color-muted)]">
         No media selected yet.
       </div>
     )

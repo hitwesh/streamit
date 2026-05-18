@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import {
   addConnectionHandler,
@@ -366,37 +367,47 @@ export default function RoomPage() {
   }, [connectionState])
 
   const visibleSystemMessages = systemMessages.slice(-3)
+  const viewerCount = activeParticipants.length
+  const hostLabel = roomDetail?.host ?? host ?? "Unknown host"
+  const entryModeLabel = roomDetail?.entry_mode ?? roomMeta?.entry_mode ?? null
+  const entryLabel =
+    entryModeLabel === "APPROVAL"
+      ? "Approval"
+      : entryModeLabel === "PASSWORD"
+        ? "Password"
+        : "Open"
+  const isPrivateRoom = roomDetail?.is_private ?? roomMeta?.is_private ?? false
+  const privacyLabel = isPrivateRoom ? "Private" : "Public"
+  const chatLabel = roomDetail
+    ? roomDetail.is_chat_enabled
+      ? "Chat enabled"
+      : "Chat disabled"
+    : "Chat status pending"
+  const streamTitle = roomDetail?.video_id ? "Live watch party" : `Room ${roomCode}`
 
   return (
-    <div className="min-h-screen px-6 py-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="panel flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[color:var(--color-muted)]">
-              Room
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold text-[color:var(--color-foreground)]">
-                {roomCode}
-              </h1>
-              <span className="badge">{isHost ? "Host" : "Guest"}</span>
-              <span className="text-xs text-[color:var(--color-muted)]">
-                {connectionLabel}
-              </span>
-            </div>
-            {roomMeta?.room_password ? (
-              <p className="mt-2 text-xs text-[color:var(--color-muted)]">
-                Room password: {roomMeta.room_password}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <button
-              onClick={() => router.push("/")}
-              className="btn btn-outline"
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-black/70 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm font-semibold uppercase tracking-[0.4em] text-white"
             >
-              Back to home
-            </button>
+              StreamIt
+            </Link>
+            <div className="hidden md:flex items-center gap-2 text-xs text-[color:var(--color-muted)]">
+              <span className="badge badge-muted">{connectionLabel}</span>
+              <span className="text-xs">Room {roomCode}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="badge badge-muted">
+              {viewerCount} {viewerCount === 1 ? "viewer" : "viewers"}
+            </span>
+            <Link href="/" className="btn btn-outline">
+              Back to discover
+            </Link>
             {isHost ? (
               <button onClick={handleDeleteRoom} className="btn btn-outline">
                 Delete room
@@ -404,18 +415,18 @@ export default function RoomPage() {
             ) : null}
             {user ? (
               <span className="text-xs text-[color:var(--color-muted)]">
-                Signed in as {user.display_name}
+                {user.display_name}
               </span>
             ) : (
-              <span className="text-xs text-red-600">
-                Login required to connect
-              </span>
+              <span className="text-xs text-red-400">Login required to connect</span>
             )}
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-6">
         {pendingApproval ? (
-          <section className="panel-soft flex flex-col gap-2 p-4 text-sm">
+          <section className="panel-outline flex flex-col gap-2 p-4 text-sm">
             <p className="font-semibold">Waiting for host approval</p>
             <p className="text-xs text-[color:var(--color-muted)]">
               The host must approve your entry before you can connect.
@@ -427,52 +438,96 @@ export default function RoomPage() {
         ) : null}
 
         {visibleSystemMessages.length > 0 ? (
-          <section className="panel-soft flex flex-col gap-2 p-3 text-xs text-[color:var(--color-muted)]">
+          <section className="panel-outline flex flex-col gap-2 p-3 text-xs text-[color:var(--color-muted)]">
             {visibleSystemMessages.map((message, index) => (
               <span key={`${message}-${index}`}>{message}</span>
             ))}
           </section>
         ) : null}
 
+        {roomMeta?.room_password ? (
+          <section className="panel-outline px-4 py-3 text-xs text-[color:var(--color-muted)]">
+            Room password: {roomMeta.room_password}
+          </section>
+        ) : null}
+
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="panel flex flex-col gap-4 p-5">
-            <div className="aspect-video rounded-3xl bg-black/90">
-              {process.env.NEXT_PUBLIC_DEMO_STREAM_URL ? (
-                <Player onPlayerEvent={handlePlayerEvent} isHost={isHost} />
-              ) : (
-                <VideoPlayer
-                  provider={roomDetail?.video_provider ?? ""}
-                  videoId={roomDetail?.video_id ?? ""}
-                />
-              )}
+          <section className="flex flex-col gap-6">
+            <div className="panel p-4">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black">
+                <div className="absolute left-3 top-3 flex items-center gap-2 text-xs">
+                  <span className="badge">Live</span>
+                  <span className="badge badge-muted">
+                    {viewerCount} {viewerCount === 1 ? "viewer" : "viewers"}
+                  </span>
+                </div>
+                <div className="aspect-video w-full">
+                  {process.env.NEXT_PUBLIC_DEMO_STREAM_URL ? (
+                    <Player onPlayerEvent={handlePlayerEvent} isHost={isHost} />
+                  ) : (
+                    <VideoPlayer
+                      provider={roomDetail?.video_provider ?? ""}
+                      videoId={roomDetail?.video_id ?? ""}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {isHost ? (
+                  <PlaybackControls
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                    onSeek={handleSeek}
+                    onSync={handleSync}
+                    currentTime={playbackState.time}
+                    isPlaying={playbackState.is_playing}
+                  />
+                ) : (
+                  <div className="text-xs text-[color:var(--color-muted)]">
+                    Playback controlled by host. Current time {playbackState.time.toFixed(1)}s
+                  </div>
+                )}
+              </div>
+
+              {resumeInfo ? (
+                <div className="panel-outline mt-4 flex items-center justify-between px-4 py-3 text-xs">
+                  <span>
+                    Resume: {resumeInfo.last_position_seconds.toFixed(1)}s -
+                    {" "}{resumeInfo.progress_percent.toFixed(1)}%
+                  </span>
+                  <span>
+                    {resumeInfo.completed ? "Completed" : "In progress"}
+                  </span>
+                </div>
+              ) : null}
             </div>
 
-            {isHost ? (
-              <PlaybackControls
-                onPlay={handlePlay}
-                onPause={handlePause}
-                onSeek={handleSeek}
-                onSync={handleSync}
-                currentTime={playbackState.time}
-                isPlaying={playbackState.is_playing}
-              />
-            ) : (
-              <div className="text-xs text-[color:var(--color-muted)]">
-                Playback controlled by host. Current time {playbackState.time.toFixed(1)}s
+            <div className="panel-soft p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
+                    Stream
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold">{streamTitle}</h2>
+                  <p className="mt-1 text-sm text-[color:var(--color-muted)]">
+                    Hosted by {hostLabel}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="badge">Live</span>
+                  <span className="badge badge-muted">{privacyLabel}</span>
+                  <span className="badge badge-muted">Entry {entryLabel}</span>
+                </div>
               </div>
-            )}
-
-            {resumeInfo ? (
-              <div className="panel-soft flex items-center justify-between px-4 py-3 text-xs">
-                <span>
-                  Resume: {resumeInfo.last_position_seconds.toFixed(1)}s -
-                  {" "}{resumeInfo.progress_percent.toFixed(1)}%
-                </span>
-                <span>
-                  {resumeInfo.completed ? "Completed" : "In progress"}
-                </span>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="tag">Realtime sync</span>
+                <span className="tag">{chatLabel}</span>
+                {roomDetail?.video_provider ? (
+                  <span className="tag">Provider {roomDetail.video_provider}</span>
+                ) : null}
               </div>
-            ) : null}
+            </div>
 
             {isHost ? (
               <div className="panel-soft flex flex-col gap-3 p-4">
@@ -496,7 +551,7 @@ export default function RoomPage() {
                   {searchResults.map((result) => (
                     <div
                       key={`${result.provider}-${result.stream_id}`}
-                      className="rounded-2xl border border-black/5 bg-white/70 p-3"
+                      className="rounded-2xl border border-white/10 bg-white/5 p-3"
                     >
                       <div className="flex gap-3">
                         {result.poster ? (
@@ -508,7 +563,7 @@ export default function RoomPage() {
                             className="h-16 w-12 rounded-xl object-cover"
                           />
                         ) : (
-                          <div className="flex h-16 w-12 items-center justify-center rounded-xl bg-black/5 text-[10px] text-[color:var(--color-muted)]">
+                          <div className="flex h-16 w-12 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-[10px] text-[color:var(--color-muted)]">
                             No art
                           </div>
                         )}
@@ -535,9 +590,18 @@ export default function RoomPage() {
           </section>
 
           <aside className="flex flex-col gap-6">
-            <section className="panel flex h-[420px] flex-col">
-              <div className="border-b border-black/5 px-4 py-3">
-                <h2 className="text-sm font-semibold">Chat</h2>
+            <section className="panel flex h-[480px] flex-col">
+              <div className="border-b border-white/10 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold">Live chat</h2>
+                  <span className="badge badge-muted">
+                    {roomDetail
+                      ? roomDetail.is_chat_enabled
+                        ? "Enabled"
+                        : "Muted"
+                      : "Pending"}
+                  </span>
+                </div>
                 <p className="text-xs text-[color:var(--color-muted)]">
                   Realtime messages are stored and replayed on join.
                 </p>
@@ -576,7 +640,7 @@ export default function RoomPage() {
                     {participants.map((participant) => (
                       <div
                         key={participant.id}
-                        className="rounded-2xl border border-black/5 bg-white/70 p-3"
+                        className="rounded-2xl border border-white/10 bg-white/5 p-3"
                       >
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-semibold">

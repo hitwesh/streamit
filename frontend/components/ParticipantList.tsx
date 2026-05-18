@@ -30,7 +30,7 @@ export default function ParticipantList({
           {participants.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/70 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
             >
               <span className="text-[color:var(--color-foreground)]">
                 {p.display_name}
