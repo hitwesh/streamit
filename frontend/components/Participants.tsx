@@ -18,7 +18,7 @@ export default function Participants() {
           {participants.map((p) => (
             <div
               key={p}
-              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+              className="flex items-center justify-between border border-white/10 bg-white/5 px-3 py-2 text-sm"
             >
               <span>{p}</span>
               {p === host ? <span className="badge">Host</span> : null}

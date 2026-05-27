@@ -27,6 +27,7 @@ class RoomJoinTests(TestCase):
             host=self.host,
             is_private=False,
             entry_mode=None,
+            genre="Movies",
         )
 
     def test_host_is_auto_approved(self):

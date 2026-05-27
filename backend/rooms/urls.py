@@ -8,6 +8,9 @@ from .views import (
     room_participants_view,
     room_source_view,
     public_rooms_view,
+    admin_rooms_view,
+    admin_toggle_chat_view,
+    admin_delete_room_view,
     search_content,
     save_progress_view,
     get_progress_view,
@@ -26,5 +29,8 @@ urlpatterns = [
     path("<str:room_code>/detail/", room_detail_view),
     path("<str:room_code>/resume/", resume_progress_view),
     path("public/", public_rooms_view),
+    path("admin/rooms/", admin_rooms_view),
+    path("admin/rooms/<uuid:room_id>/chat/", admin_toggle_chat_view),
+    path("admin/rooms/<uuid:room_id>/delete/", admin_delete_room_view),
     path("search/", search_content),
 ]

@@ -3,19 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { getPublicRooms, joinRoom, logout, type PublicRoom } from "@/lib/api"
+import { getPublicRooms, joinRoom, logout, type PublicRoom, type RoomGenre } from "@/lib/api"
 import { loadLastRoomCode, saveRoomMeta } from "@/lib/storage"
 import { useSessionStore } from "@/store/sessionStore"
 
-const CATEGORIES = [
-  { name: "Watch parties", live: 18 },
-  { name: "Movies", live: 12 },
-  { name: "Series", live: 8 },
-  { name: "Anime", live: 6 },
-  { name: "Sports", live: 9 },
-  { name: "Music", live: 5 },
-  { name: "Documentary", live: 4 },
-  { name: "Indie", live: 7 },
+const ROOM_GENRES: RoomGenre[] = [
+  "Movies",
+  "Series",
+  "Anime",
+  "Sports",
+  "Music",
+  "Gaming",
+  "Documentary",
+  "Other",
 ]
 
 const TRENDING = [
@@ -112,6 +112,23 @@ export default function Home() {
     [publicRooms]
   )
 
+  const categories = useMemo(() => {
+    const counts = new Map<RoomGenre, number>()
+    for (const genre of ROOM_GENRES) counts.set(genre, 0)
+
+    for (const room of publicRooms) {
+      counts.set(room.genre, (counts.get(room.genre) ?? 0) + 1)
+    }
+
+    return [
+      { name: "Watch parties", live: publicRooms.length },
+      ...ROOM_GENRES.map((genre) => ({
+        name: genre,
+        live: counts.get(genre) ?? 0,
+      })),
+    ]
+  }, [publicRooms])
+
   const handleJoinRoom = async (roomCode: string) => {
     setJoinError(null)
     setJoinStatus(null)
@@ -164,19 +181,19 @@ export default function Home() {
             <nav className="hidden md:flex items-center gap-2 text-xs text-[color:var(--color-muted)]">
               <Link
                 href="/"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
+                className="border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
               >
                 Discover
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Dashboard
               </Link>
               <Link
                 href="/profile"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Profile
               </Link>
@@ -231,25 +248,25 @@ export default function Home() {
             <div className="mt-4 flex flex-col gap-2 text-sm">
               <Link
                 href="/"
-                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[color:var(--color-foreground)]"
+                className="border border-white/10 bg-white/5 px-3 py-2 text-[color:var(--color-foreground)]"
               >
                 Discover
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-2xl border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
               >
                 Creator studio
               </Link>
               <Link
                 href="/profile"
-                className="rounded-2xl border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
               >
                 Profile
               </Link>
               <Link
                 href="/login"
-                className="rounded-2xl border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/5"
               >
                 Sign in
               </Link>
@@ -261,7 +278,7 @@ export default function Home() {
               Categories
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <span key={category.name} className="tag">
                   {category.name} ({category.live})
                 </span>
@@ -304,7 +321,7 @@ export default function Home() {
                   {publicRooms.length} live now
                 </span>
               </div>
-              <div className="mt-4 overflow-hidden rounded-2xl">
+              <div className="mt-4 overflow-hidden">
                 {featuredRoom ? (
                   <div className="relative aspect-video stream-thumb">
                     <div className="absolute inset-0 flex flex-col justify-between bg-black/40 p-4">
@@ -339,7 +356,7 @@ export default function Home() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex aspect-video items-center justify-center rounded-2xl border border-white/10 bg-black/60 text-sm text-[color:var(--color-muted)]">
+                  <div className="flex aspect-video items-center justify-center border border-white/10 bg-black/60 text-sm text-[color:var(--color-muted)]">
                     No featured streams yet.
                   </div>
                 )}
@@ -405,9 +422,9 @@ export default function Home() {
                   <div key={index} className="stream-card">
                     <div className="aspect-video skeleton" />
                     <div className="space-y-3 p-4">
-                      <div className="h-3 w-24 rounded-full skeleton" />
-                      <div className="h-4 w-40 rounded-full skeleton" />
-                      <div className="h-3 w-20 rounded-full skeleton" />
+                      <div className="h-3 w-24 skeleton" />
+                      <div className="h-4 w-40 skeleton" />
+                      <div className="h-3 w-20 skeleton" />
                     </div>
                   </div>
                 ))}
@@ -467,7 +484,7 @@ export default function Home() {
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <span key={category.name} className="tag">
                   {category.name} ({category.live} live)
                 </span>

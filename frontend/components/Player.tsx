@@ -54,7 +54,7 @@ export default function Player({ onPlayerEvent, isHost = false }: PlayerProps) {
 
   if (!demoStreamUrl) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-2xl border border-white/10 bg-black/80 text-[color:var(--color-foreground)]">
+      <div className="flex h-full w-full items-center justify-center border border-white/10 bg-black/80 text-[color:var(--color-foreground)]">
         <div className="text-center space-y-2">
           <p className="text-lg font-semibold">Player Ready</p>
           <p className="text-sm text-[color:var(--color-muted)]">

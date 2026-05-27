@@ -16,6 +16,7 @@ class ChatTests(TestCase):
             host=self.user,
             is_private=False,
             entry_mode=None,
+            genre="Movies",
         )
 
     def test_chat_persists_when_enabled(self):

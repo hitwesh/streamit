@@ -43,19 +43,19 @@ export default function ProfilePage() {
             <nav className="hidden md:flex items-center gap-2 text-xs text-[color:var(--color-muted)]">
               <Link
                 href="/"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Discover
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Dashboard
               </Link>
               <Link
                 href="/profile"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
+                className="border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
               >
                 Profile
               </Link>

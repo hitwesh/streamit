@@ -454,7 +454,7 @@ export default function RoomPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="flex flex-col gap-6">
             <div className="panel p-4">
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black">
+              <div className="relative overflow-hidden border border-white/10 bg-black">
                 <div className="absolute left-3 top-3 flex items-center gap-2 text-xs">
                   <span className="badge">Live</span>
                   <span className="badge badge-muted">
@@ -551,7 +551,7 @@ export default function RoomPage() {
                   {searchResults.map((result) => (
                     <div
                       key={`${result.provider}-${result.stream_id}`}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-3"
+                      className="border border-white/10 bg-white/5 p-3"
                     >
                       <div className="flex gap-3">
                         {result.poster ? (
@@ -560,10 +560,10 @@ export default function RoomPage() {
                             alt=""
                             width={48}
                             height={64}
-                            className="h-16 w-12 rounded-xl object-cover"
+                            className="h-16 w-12 object-cover"
                           />
                         ) : (
-                          <div className="flex h-16 w-12 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-[10px] text-[color:var(--color-muted)]">
+                          <div className="flex h-16 w-12 items-center justify-center border border-white/10 bg-black/40 text-[10px] text-[color:var(--color-muted)]">
                             No art
                           </div>
                         )}
@@ -640,7 +640,7 @@ export default function RoomPage() {
                     {participants.map((participant) => (
                       <div
                         key={participant.id}
-                        className="rounded-2xl border border-white/10 bg-white/5 p-3"
+                        className="border border-white/10 bg-white/5 p-3"
                       >
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-semibold">

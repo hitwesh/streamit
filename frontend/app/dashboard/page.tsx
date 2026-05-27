@@ -8,11 +8,23 @@ import {
   getPublicRooms,
   joinRoom,
   type PublicRoom,
+  type RoomGenre,
 } from "@/lib/api"
 import { loadLastRoomCode, saveRoomMeta } from "@/lib/storage"
 import { useSessionStore } from "@/store/sessionStore"
 
 const DEFAULT_ENTRY_MODE = "APPROVAL"
+
+const ROOM_GENRES: RoomGenre[] = [
+  "Movies",
+  "Series",
+  "Anime",
+  "Sports",
+  "Music",
+  "Gaming",
+  "Documentary",
+  "Other",
+]
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -30,6 +42,7 @@ export default function DashboardPage() {
 
   const [isPrivate, setIsPrivate] = useState(false)
   const [entryMode, setEntryMode] = useState<string>(DEFAULT_ENTRY_MODE)
+  const [genre, setGenre] = useState<RoomGenre>("Movies")
   const [joinCode, setJoinCode] = useState("")
   const [joinPassword, setJoinPassword] = useState("")
   const [createError, setCreateError] = useState<string | null>(null)
@@ -84,6 +97,7 @@ export default function DashboardPage() {
     try {
       const payload = {
         is_private: isPrivate,
+        genre,
         entry_mode: isPrivate ? entryMode : null,
       }
       const data = await createRoom(payload, token)
@@ -163,19 +177,19 @@ export default function DashboardPage() {
             <nav className="hidden md:flex items-center gap-2 text-xs text-[color:var(--color-muted)]">
               <Link
                 href="/"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Discover
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
+                className="border border-white/10 bg-white/5 px-3 py-1 text-[color:var(--color-foreground)]"
               >
                 Dashboard
               </Link>
               <Link
                 href="/profile"
-                className="rounded-full border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
+                className="border border-transparent px-3 py-1 transition hover:border-white/10 hover:bg-white/5"
               >
                 Profile
               </Link>
@@ -245,6 +259,22 @@ export default function DashboardPage() {
               Launch public or private rooms with approvals and host controls.
             </p>
             <div className="mt-4 grid gap-4">
+              <div className="panel-soft p-4">
+                <label className="text-xs uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
+                  Genre
+                </label>
+                <select
+                  value={genre}
+                  onChange={(event) => setGenre(event.target.value as RoomGenre)}
+                  className="input mt-3"
+                >
+                  {ROOM_GENRES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="panel-soft p-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { guestLogin } from "@/lib/api"
+import { guestLogin, signup } from "@/lib/api"
 import { useSessionStore } from "@/store/sessionStore"
 
 function getErrorMessage(error: unknown): string {
@@ -17,7 +17,10 @@ export default function SignupPage() {
 
   const [displayName, setDisplayName] = useState("")
   const [email, setEmail] = useState("")
-  const [requestStatus, setRequestStatus] = useState<string | null>(null)
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [signupError, setSignupError] = useState<string | null>(null)
+  const [signupLoading, setSignupLoading] = useState(false)
   const [guestName, setGuestName] = useState("")
   const [guestError, setGuestError] = useState<string | null>(null)
 
@@ -25,17 +28,46 @@ export default function SignupPage() {
     hydrate()
   }, [hydrate])
 
-  const handleRequestAccess = () => {
-    setRequestStatus(null)
+  const handleSignup = async () => {
+    setSignupError(null)
+    setSignupLoading(true)
 
-    if (!displayName.trim() || !email.trim()) {
-      setRequestStatus("Display name and email required")
+    const trimmedDisplayName = displayName.trim()
+    const trimmedEmail = email.trim()
+
+    if (!trimmedDisplayName || !trimmedEmail || !password) {
+      setSignupError("Display name, email, and password are required")
+      setSignupLoading(false)
       return
     }
 
-    setRequestStatus(
-      "Account creation is invite only. Our team will reach out with access."
-    )
+    if (password !== confirmPassword) {
+      setSignupError("Passwords do not match")
+      setSignupLoading(false)
+      return
+    }
+
+    try {
+      const data = await signup({
+        display_name: trimmedDisplayName,
+        email: trimmedEmail,
+        password,
+      })
+
+      setSession(
+        {
+          id: data.id,
+          display_name: data.display_name,
+          is_guest: data.is_guest,
+        },
+        data.access_token
+      )
+      router.push("/dashboard")
+    } catch (error) {
+      setSignupError(getErrorMessage(error))
+    } finally {
+      setSignupLoading(false)
+    }
   }
 
   const handleGuestLogin = async () => {
@@ -86,11 +118,10 @@ export default function SignupPage() {
             Create account
           </p>
           <h1 className="mt-3 text-2xl font-semibold">
-            Request access to StreamIt.
+            Create your StreamIt account.
           </h1>
           <p className="mt-2 text-sm text-[color:var(--color-muted)]">
-            We are onboarding creators in cohorts to keep quality high. Submit
-            your details and we will reach out with access.
+            Set up your profile and start hosting rooms in minutes.
           </p>
 
           <div className="mt-6 space-y-3">
@@ -107,13 +138,29 @@ export default function SignupPage() {
               type="email"
               className="input"
             />
-            {requestStatus ? (
-              <p className="text-xs text-[color:var(--color-muted)]">
-                {requestStatus}
-              </p>
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              type="password"
+              className="input"
+            />
+            <input
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Confirm password"
+              type="password"
+              className="input"
+            />
+            {signupError ? (
+              <p className="text-xs text-red-400">{signupError}</p>
             ) : null}
-            <button onClick={handleRequestAccess} className="btn btn-primary w-full">
-              Request access
+            <button
+              onClick={handleSignup}
+              className="btn btn-primary w-full"
+              disabled={signupLoading}
+            >
+              {signupLoading ? "Creating…" : "Create account"}
             </button>
           </div>
 
@@ -152,9 +199,9 @@ export default function SignupPage() {
             </button>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-[color:var(--color-muted)]">
-            Guest sessions are public only and do not unlock hosting tools. Host
-            access requires an invite.
+          <div className="mt-6 border border-white/10 bg-white/5 px-4 py-3 text-xs text-[color:var(--color-muted)]">
+            Guest sessions can join rooms instantly, but hosting tools require a
+            full account.
           </div>
         </section>
       </main>

@@ -24,6 +24,7 @@ class PermissionTests(TestCase):
         self.room = Room.objects.create(
             code="PERM01",
             host=self.host,
+            genre="Movies",
             video_provider="movie",
             video_id="x",
         )

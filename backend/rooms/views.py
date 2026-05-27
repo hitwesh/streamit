@@ -1,7 +1,3 @@
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 
 from asgiref.sync import async_to_sync
@@ -25,79 +21,83 @@ from .serializers import WatchProgressSerializer
 from .services import create_room, join_room
 from .permissions import PermissionService
 
-@csrf_exempt
-@require_POST
-@login_required
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_room_view(request):
-    if request.user.is_anonymous or request.user.is_guest:
+    if request.user.is_guest:
         return Response(
             {
-                "type": "ERROR",
-                "code": "AUTH_REQUIRED",
-                "message": "Login required to host",
+                "error": "Login required to host",
             },
-            status=403,
+            status=status.HTTP_403_FORBIDDEN,
         )
 
     if not request.user.username:
         return Response(
             {
-                "code": "USERNAME_REQUIRED",
-                "message": "Please set a username first.",
+                "error": "Please set a username first.",
             },
-            status=403,
+            status=status.HTTP_403_FORBIDDEN,
         )
 
     if not PermissionService.can_host(request.user):
         return Response(
             {
-                "type": "ERROR",
-                "code": "AUTH_REQUIRED",
-                "message": "Login required to host",
+                "error": "Login required to host",
             },
-            status=403,
+            status=status.HTTP_403_FORBIDDEN,
         )
 
-    data = json.loads(request.body)
+    data = request.data or {}
 
     is_private = data.get("is_private", False)
     entry_mode = data.get("entry_mode")
+    genre = (data.get("genre") or "").strip()
+
+    if not genre:
+        return Response({"error": "Genre required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if genre not in dict(Room.GENRE_CHOICES):
+        return Response({"error": "Invalid genre"}, status=status.HTTP_400_BAD_REQUEST)
 
     if is_private:
         if entry_mode not in [Room.ENTRY_APPROVAL, Room.ENTRY_PASSWORD]:
-            return JsonResponse(
+            return Response(
                 {"error": "Invalid entry_mode for private room"},
-                status=400
+                status=status.HTTP_400_BAD_REQUEST,
             )
+    else:
+        entry_mode = None
 
     room, raw_password = create_room(
         host=request.user,
         is_private=is_private,
         entry_mode=entry_mode,
+        genre=genre,
     )
 
     response = {
         "room_id": str(room.id),
         "code": room.code,
         "is_private": room.is_private,
+        "genre": room.genre,
         "entry_mode": room.entry_mode,
     }
 
     if raw_password:
         response["room_password"] = raw_password  # shown ONCE
 
-    return JsonResponse(response, status=201)
+    return Response(response, status=status.HTTP_201_CREATED)
 
-@csrf_exempt
-@require_POST
-@login_required
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def join_room_view(request):
-    data = json.loads(request.body)
-    room_code = data.get("code")
+    data = request.data or {}
+    room_code = (data.get("code") or "").strip().upper()
     password = data.get("password")
 
     if not room_code:
-        return JsonResponse({"error": "Room code required"}, status=400)
+        return Response({"error": "Room code required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         participant, room = join_room(
@@ -106,27 +106,32 @@ def join_room_view(request):
             password=password,
         )
     except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=403)
+        return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
 
-    return JsonResponse({
+    return Response({
         "room_id": str(room.id),
         "code": room.code,
         "status": participant.status,
         "is_host": room.host_id == request.user.id,
     })
 
-@csrf_exempt
-@require_POST
-@login_required
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def approve_participant_view(request):
-    data = json.loads(request.body)
+    data = request.data or {}
     room_id = data.get("room_id")
     user_id = data.get("user_id")
+
+    if not room_id or not user_id:
+        return Response(
+            {"error": "room_id and user_id required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     room = get_object_or_404(Room, id=room_id)
 
     if room.host_id != request.user.id:
-        return JsonResponse({"error": "Only host can approve"}, status=403)
+        return Response({"error": "Only host can approve"}, status=status.HTTP_403_FORBIDDEN)
 
     participant = get_object_or_404(
         RoomParticipant,
@@ -136,9 +141,9 @@ def approve_participant_view(request):
     )
 
     participant.status = RoomParticipant.STATUS_APPROVED
-    participant.save()
+    participant.save(update_fields=["status"])
 
-    return JsonResponse({"approved": True})
+    return Response({"approved": True})
 
 
 @api_view(["GET"])
@@ -163,6 +168,7 @@ def room_detail_view(request, room_code):
         "state": room.state,
         "is_active": room.is_active,
         "is_private": room.is_private,
+        "genre": room.genre,
         "entry_mode": room.entry_mode,
         "is_chat_enabled": room.is_chat_enabled,
         "host": room.host.display_name,
@@ -356,7 +362,7 @@ def public_rooms_view(request):
             is_active=True,
             state=Room.State.LIVE,
         )
-        .only("code", "host", "created_at")
+        .only("code", "host", "created_at", "genre")
         .select_related("host")
         .order_by("-created_at")
     )
@@ -380,6 +386,7 @@ def public_rooms_view(request):
                 "code": room.code,
                 "host": room.host.display_name,
                 "viewers": int(viewers or 0),
+                "genre": room.genre,
                 "created_at": room.created_at.isoformat(),
             })
 
@@ -387,6 +394,94 @@ def public_rooms_view(request):
 
     data = async_to_sync(build_response)(rooms)
     return Response(data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_rooms_view(request):
+    if not request.user.is_staff:
+        return Response({"error": "Admin access required"}, status=403)
+
+    rooms = list(
+        Room.objects
+        .select_related("host")
+        .order_by("-created_at")
+    )
+
+    async def build_admin_response(rooms_list):
+        client = get_redis_client()
+        response = []
+
+        for room in rooms_list:
+            viewers = await client.get(room_viewers_key(room.code))
+
+            response.append({
+                "id": str(room.id),
+                "code": room.code,
+                "host": room.host.display_name,
+                "host_id": str(room.host_id),
+                "is_private": room.is_private,
+                "genre": room.genre,
+                "entry_mode": room.entry_mode,
+                "state": room.state,
+                "is_active": room.is_active,
+                "is_chat_enabled": room.is_chat_enabled,
+                "created_at": room.created_at.isoformat(),
+                "viewers": int(viewers or 0),
+            })
+
+        return response
+
+    data = async_to_sync(build_admin_response)(rooms)
+    return Response(data)
+
+
+def _parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return None
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "y"}:
+            return True
+        if normalized in {"false", "0", "no", "n"}:
+            return False
+    return None
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_toggle_chat_view(request, room_id):
+    if not request.user.is_staff:
+        return Response({"error": "Admin access required"}, status=403)
+
+    room = get_object_or_404(Room, id=room_id)
+
+    enabled = _parse_bool(request.data.get("enabled"))
+    if enabled is None:
+        room.is_chat_enabled = not room.is_chat_enabled
+    else:
+        room.is_chat_enabled = enabled
+
+    room.save(update_fields=["is_chat_enabled"])
+
+    return Response({
+        "room_id": str(room.id),
+        "is_chat_enabled": room.is_chat_enabled,
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_delete_room_view(request, room_id):
+    if not request.user.is_staff:
+        return Response({"error": "Admin access required"}, status=403)
+
+    room = get_object_or_404(Room, id=room_id)
+    room.mark_deleted()
+
+    return Response({"status": "room_deleted"})
 
 
 @ratelimit(key="ip", rate="10/m", block=True)

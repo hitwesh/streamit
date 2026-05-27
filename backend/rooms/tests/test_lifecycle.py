@@ -21,6 +21,7 @@ class RoomLifecycleTests(TestCase):
             host=self.host,
             is_private=False,
             entry_mode=None,
+            genre="Movies",
         )
 
     def test_room_starts_created(self):

@@ -19,6 +19,7 @@ class PublicRoomsTests(TestCase):
         self.room = Room.objects.create(
             code="PUB123",
             host=self.host,
+            genre="Movies",
             is_private=False,
             video_provider="x",
             video_id="y",

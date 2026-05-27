@@ -3,6 +3,8 @@ import re
 import uuid
 
 from django.contrib.auth import authenticate, login, logout
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -40,6 +42,59 @@ def login_view(request):
         "is_guest": user.is_guest,
         "access_token": str(token),
     })
+
+
+@csrf_exempt
+@require_POST
+def signup_view(request):
+    data = json.loads(request.body)
+    display_name = (data.get("display_name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not display_name or not email or not password:
+        return JsonResponse(
+            {"error": "display_name, email, and password are required"},
+            status=400,
+        )
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"error": "Invalid email"}, status=400)
+
+    if len(password) < 8:
+        return JsonResponse(
+            {"error": "Password must be at least 8 characters"},
+            status=400,
+        )
+
+    if User.objects.filter(email__iexact=email).exists():
+        return JsonResponse({"error": "Email already in use"}, status=400)
+
+    user = User.objects.create_user(
+        email=email,
+        password=password,
+        display_name=display_name,
+        is_guest=False,
+    )
+
+    login(
+        request,
+        user,
+        backend="django.contrib.auth.backends.ModelBackend",
+    )
+
+    token = AccessToken.for_user(user)
+    return JsonResponse(
+        {
+            "id": str(user.id),
+            "display_name": user.display_name,
+            "is_guest": user.is_guest,
+            "access_token": str(token),
+        },
+        status=201,
+    )
 
 
 @csrf_exempt

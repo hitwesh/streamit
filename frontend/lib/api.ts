@@ -22,10 +22,23 @@ export type LoginResponse = SessionUser & {
   access_token: string
 }
 
+export type RoomGenre =
+  | "Movies"
+  | "Series"
+  | "Anime"
+  | "Sports"
+  | "Music"
+  | "Gaming"
+  | "Documentary"
+  | "Other"
+
+export type SignupResponse = LoginResponse
+
 export type RoomCreateResponse = {
   room_id: string
   code: string
   is_private: boolean
+  genre: RoomGenre
   entry_mode: string | null
   room_password?: string
 }
@@ -41,6 +54,7 @@ export type PublicRoom = {
   code: string
   host: string
   viewers: number
+  genre: RoomGenre
   created_at: string
 }
 
@@ -59,6 +73,7 @@ export type RoomDetail = {
   state: string
   is_active: boolean
   is_private: boolean
+  genre: RoomGenre
   entry_mode: string | null
   is_chat_enabled: boolean
   host: string
@@ -92,12 +107,19 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers.Authorization = `Bearer ${options.token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method ?? "GET",
-    credentials: "include",
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: options.method ?? "GET",
+      credentials: "include",
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    })
+  } catch {
+    throw new Error(
+      `Unable to reach backend at ${API_BASE_URL}. Check NEXT_PUBLIC_API_BASE_URL and that the backend server is running.`
+    )
+  }
 
   const contentType = response.headers.get("content-type") ?? ""
   const data = contentType.includes("application/json")
@@ -122,6 +144,19 @@ export function login(email: string, password: string): Promise<LoginResponse> {
   })
 }
 
+export function signup(
+  payload: {
+    display_name: string
+    email: string
+    password: string
+  }
+): Promise<SignupResponse> {
+  return request("/api/auth/signup/", {
+    method: "POST",
+    body: payload,
+  })
+}
+
 export function guestLogin(displayName: string): Promise<LoginResponse> {
   return request("/api/auth/guest/", {
     method: "POST",
@@ -138,6 +173,7 @@ export function logout(): Promise<{ success: boolean }> {
 export function createRoom(
   payload: {
     is_private: boolean
+    genre: RoomGenre
     entry_mode: string | null
   },
   token?: string | null
@@ -255,6 +291,47 @@ export function saveProgress(
   return request("/api/rooms/progress/save/", {
     method: "POST",
     body: payload,
+    token,
+  })
+}
+
+export type AdminRoomRecord = {
+  id: string
+  code: string
+  host: string
+  host_id: string
+  is_private: boolean
+  genre: RoomGenre
+  entry_mode: string | null
+  state: string
+  is_active: boolean
+  is_chat_enabled: boolean
+  created_at: string
+  viewers: number
+}
+
+export function adminListRooms(token?: string | null): Promise<AdminRoomRecord[]> {
+  return request("/api/rooms/admin/rooms/", { token })
+}
+
+export function adminToggleRoomChat(
+  roomId: string,
+  enabled: boolean,
+  token?: string | null
+): Promise<{ room_id: string; is_chat_enabled: boolean }> {
+  return request(`/api/rooms/admin/rooms/${roomId}/chat/`, {
+    method: "POST",
+    body: { enabled },
+    token,
+  })
+}
+
+export function adminDeleteRoom(
+  roomId: string,
+  token?: string | null
+): Promise<{ status: string }> {
+  return request(`/api/rooms/admin/rooms/${roomId}/delete/`, {
+    method: "POST",
     token,
   })
 }

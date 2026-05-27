@@ -10,7 +10,7 @@ def generate_room_code(length=6):
 	return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
-def create_room(*, host, is_private, entry_mode):
+def create_room(*, host, is_private, entry_mode, genre):
 	# Generate unique room code
 	while True:
 		code = generate_room_code()
@@ -21,6 +21,7 @@ def create_room(*, host, is_private, entry_mode):
 		code=code,
 		host=host,
 		is_private=is_private,
+		genre=genre,
 		entry_mode=entry_mode if is_private else None,
 		video_provider="",
 		video_id="",

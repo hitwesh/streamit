@@ -1,7 +1,10 @@
 import json
 import os
 
-from django.test import Client, TestCase
+from django.test import TestCase
+
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import AccessToken
 
 from users.models import User
 
@@ -11,36 +14,38 @@ TEST_PASSWORD = os.getenv("TEST_USER_PASSWORD", "test-password")
 
 class RoomAPITests(TestCase):
     def setUp(self):
-        self.client = Client()
+        self.client = APIClient()
         self.user = User.objects.create_user(
             email="user@test.com",
             password=TEST_PASSWORD,
             display_name="User",
         )
-        self.client.login(email="user@test.com", password=TEST_PASSWORD)
+
+        token = AccessToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
     def test_create_room(self):
         response = self.client.post(
             "/api/rooms/create/",
-            data=json.dumps({"is_private": False}),
-            content_type="application/json",
+            {"is_private": False, "genre": "Movies"},
+            format="json",
         )
         self.assertEqual(response.status_code, 201)
-        self.assertIn("code", response.json())
+        self.assertIn("code", response.data)
 
     def test_join_room(self):
         create = self.client.post(
             "/api/rooms/create/",
-            data=json.dumps({"is_private": False}),
-            content_type="application/json",
+            {"is_private": False, "genre": "Movies"},
+            format="json",
         )
-        code = create.json()["code"]
+        code = create.data["code"]
 
         join = self.client.post(
             "/api/rooms/join/",
-            data=json.dumps({"code": code}),
-            content_type="application/json",
+            {"code": code},
+            format="json",
         )
 
         self.assertEqual(join.status_code, 200)
-        self.assertTrue(join.json()["is_host"])
+        self.assertTrue(join.data["is_host"])

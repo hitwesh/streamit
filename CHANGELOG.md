@@ -5,6 +5,50 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-05-27 ? Room Genre, Admin Moderation, and Signup Flow Expansion (IN PROGRESS)
+
+### Feature
+Expanded room metadata and moderation capabilities with genre-aware room creation, staff admin controls, and first-party signup.
+
+### Behavior
+- Added `Room.genre` with allowed values: `Movies`, `Series`, `Anime`, `Sports`, `Music`, `Gaming`, `Documentary`, `Other`.
+- `POST /api/rooms/create` now requires `genre`:
+  - Missing genre returns `400` with `{"error": "Genre required"}`.
+  - Invalid genre returns `400` with `{"error": "Invalid genre"}`.
+- Room response payloads now include `genre` in:
+  - room create response,
+  - room detail response,
+  - public room listing response.
+- Added staff-only room moderation endpoints:
+  - `GET /api/rooms/admin/rooms/`
+  - `POST /api/rooms/admin/rooms/<uuid:room_id>/chat/`
+  - `POST /api/rooms/admin/rooms/<uuid:room_id>/delete/`
+- Added auth endpoint `POST /api/auth/signup/`:
+  - Validates required `display_name`, `email`, `password`.
+  - Validates email format and minimum password length.
+  - Rejects duplicate emails.
+  - Creates a non-guest user, starts a session login, and returns an access token payload.
+- Frontend integration updates:
+  - Dashboard room creation now includes genre selection.
+  - Homepage category/live counts are derived from API room genres.
+  - Added `/admin-console` UI for staff room moderation (list rooms, toggle chat, delete room).
+  - Signup page now performs direct account creation instead of access-request messaging.
+  - API client now surfaces a clearer error when backend connectivity fails.
+
+### Public Interface Notes
+- New model field: `Room.genre` (`Movies|Series|Anime|Sports|Music|Gaming|Documentary|Other`).
+- New endpoint: `POST /api/auth/signup/`.
+- New admin endpoints under `/api/rooms/admin/rooms/...`.
+- Updated room create/detail/public responses now include `genre`.
+
+### Guarantees
+- Existing room join flow and host-authoritative playback behavior are unchanged.
+- Admin moderation endpoints remain staff-gated.
+- This entry is marked `IN PROGRESS` because the workspace changes are uncommitted and may still evolve.
+
+### Validation
+- Not run locally in this update window.
+
 ## 2026-05-18 — Streaming Platform UI Redesign (STABLE)
 
 ### Feature

@@ -4,9 +4,74 @@ Django settings base for core project.
 
 import logging
 import os
+import sys
 from pathlib import Path
-import dj_database_url
+from urllib.parse import unquote, urlparse
+
 from dotenv import load_dotenv
+
+try:
+    import dj_database_url
+except ModuleNotFoundError:  # pragma: no cover
+    dj_database_url = None
+
+
+def _postgres_driver_available() -> bool:
+    try:
+        import psycopg  # type: ignore # noqa: F401
+
+        return True
+    except ModuleNotFoundError:
+        try:
+            import psycopg2  # type: ignore # noqa: F401
+
+            return True
+        except ModuleNotFoundError:
+            return False
+
+
+def _parse_database_url_fallback(database_url: str) -> dict:
+    parsed = urlparse(database_url)
+    scheme = (parsed.scheme or "").lower()
+
+    if scheme in {"postgres", "postgresql"}:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": unquote((parsed.path or "").lstrip("/")),
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "",
+            "PORT": str(parsed.port) if parsed.port else "",
+        }
+
+    if scheme == "sqlite":
+        if parsed.netloc == ":memory:" or (parsed.path or "").lstrip("/") == ":memory:":
+            return {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
+
+        path = parsed.path or ""
+        if database_url.startswith("sqlite:////"):
+            name = path[1:]
+        else:
+            name = path
+            if len(name) >= 3 and name[0] == "/" and name[2] == ":":
+                name = name[1:]
+
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": name or str(BASE_DIR / "db.sqlite3"),
+        }
+
+    raise RuntimeError(
+        f"Unsupported DATABASE_URL scheme '{scheme}'. "
+        "Install dj_database_url or use sqlite/postgresql."
+    )
+
+
+def _parse_database_url(database_url: str) -> dict:
+    if dj_database_url is not None:
+        return dj_database_url.parse(database_url)
+
+    return _parse_database_url_fallback(database_url)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -81,9 +146,31 @@ TEMPLATES = [
 WSGI_APPLICATION = "core.wsgi.application"
 ASGI_APPLICATION = "core.asgi.application"
 
-DATABASES = {
-    "default": dj_database_url.parse(os.getenv("DATABASE_URL"))
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+IS_TESTING = "test" in sys.argv
+
+_default_db = _parse_database_url(DATABASE_URL) if DATABASE_URL else {}
+
+if (
+    _default_db.get("ENGINE") == "django.db.backends.postgresql"
+    and not _postgres_driver_available()
+):
+    if IS_TESTING:
+        _default_db = {}
+    else:
+        raise RuntimeError(
+            "PostgreSQL DATABASE_URL is configured but no psycopg/psycopg2 driver is installed. "
+            "Install backend requirements."
+        )
+
+if not _default_db:
+    _default_db = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "db.sqlite3"),
+    }
+
+DATABASES = {"default": _default_db}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

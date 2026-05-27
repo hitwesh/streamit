@@ -49,7 +49,7 @@ export default function Chat({
             return (
               <div
                 key={i}
-                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
+                className="border border-white/10 bg-white/5 px-3 py-2"
               >
                 <div className="flex items-baseline justify-between text-xs text-[color:var(--color-muted)]">
                   <span className="font-medium text-[color:var(--color-foreground)]">

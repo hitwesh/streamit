@@ -8,12 +8,13 @@ class RoomAdmin(admin.ModelAdmin):
         "code",
         "host",
         "is_private",
+        "genre",
         "entry_mode",
         "is_chat_enabled",
         "created_at",
     )
     search_fields = ("code",)
-    list_filter = ("is_private", "entry_mode")
+    list_filter = ("is_private", "entry_mode", "genre")
 
 
 @admin.register(RoomParticipant)

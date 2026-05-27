@@ -12,6 +12,17 @@ User = settings.AUTH_USER_MODEL
 
 
 class Room(models.Model):
+    GENRE_CHOICES = [
+        ("Movies", "Movies"),
+        ("Series", "Series"),
+        ("Anime", "Anime"),
+        ("Sports", "Sports"),
+        ("Music", "Music"),
+        ("Gaming", "Gaming"),
+        ("Documentary", "Documentary"),
+        ("Other", "Other"),
+    ]
+
     ENTRY_APPROVAL = "APPROVAL"
     ENTRY_PASSWORD = "PASSWORD"
 
@@ -44,6 +55,11 @@ class Room(models.Model):
     )
 
     is_private = models.BooleanField(default=False)
+    genre = models.CharField(
+        max_length=20,
+        choices=GENRE_CHOICES,
+        default="Other",
+    )
     entry_mode = models.CharField(
         max_length=10,
         choices=ENTRY_MODES,

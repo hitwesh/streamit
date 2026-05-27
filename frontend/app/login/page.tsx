@@ -162,7 +162,7 @@ export default function LoginPage() {
           </div>
 
           {hydrated && user ? (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-[color:var(--color-muted)]">
+            <div className="mt-6 border border-white/10 bg-white/5 px-4 py-3 text-xs text-[color:var(--color-muted)]">
               You are already signed in as {user.display_name}. You can head to
               your dashboard to continue.
             </div>
