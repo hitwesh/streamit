@@ -25,6 +25,18 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-07 - TMDB Read Access Token Authentication (STABLE)
+
+### Fix
+- TMDB Read Access Tokens configured in `TMDB_API_KEY` are now sent using Bearer authentication.
+- Legacy TMDB v3 API keys remain supported through the `api_key` query parameter.
+
+### Validation
+- Real TMDB search request returned HTTP 200 using the configured Read Access Token.
+- Provider tests cover both credential formats.
+
+---
+
 ## 2026-05-27 ? Room Genre, Admin Moderation, and Signup Flow Expansion (IN PROGRESS)
 
 ### Feature

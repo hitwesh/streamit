@@ -4,6 +4,7 @@ from asgiref.sync import async_to_sync
 from django.test import TestCase
 
 from providers.registry import get_provider
+from providers import tmdb_client
 
 
 class SearchTests(TestCase):
@@ -27,3 +28,17 @@ class SearchTests(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].title, "Test Movie")
         self.assertEqual(results[0].media_type, "movie")
+
+    @patch.object(tmdb_client, "TMDB_API_KEY", "eyJread-access-token")
+    def test_read_access_token_uses_bearer_authentication(self):
+        headers, params = tmdb_client._authentication_options()
+
+        self.assertEqual(headers, {"Authorization": "Bearer eyJread-access-token"})
+        self.assertEqual(params, {})
+
+    @patch.object(tmdb_client, "TMDB_API_KEY", "legacy-api-key")
+    def test_legacy_api_key_uses_query_authentication(self):
+        headers, params = tmdb_client._authentication_options()
+
+        self.assertEqual(headers, {})
+        self.assertEqual(params, {"api_key": "legacy-api-key"})
