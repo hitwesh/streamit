@@ -23,7 +23,7 @@
   <li>Discover live public rooms</li>
 </ul>
 
-<p>This repository contains the backend service only (no frontend).</p>
+<p>This repository contains the Django backend and Next.js frontend for StreamIt.</p>
 
 <h2>What StreamIt Does (Simple Explanation)</h2>
 <p>Imagine a group of people watching the same movie together online.</p>

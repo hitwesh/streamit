@@ -11,7 +11,7 @@ interface PlayerProps {
 }
 
 export default function Player({ onPlayerEvent, isHost = false }: PlayerProps) {
-  const playerRef = useRef<ReactPlayer | null>(null)
+  const playerRef = useRef<HTMLVideoElement | null>(null)
   const lastProgressRef = useRef(0)
   const { is_playing, time } = useRoomStore((s) => s.playback)
   const demoStreamUrl = process.env.NEXT_PUBLIC_DEMO_STREAM_URL
@@ -20,12 +20,12 @@ export default function Player({ onPlayerEvent, isHost = false }: PlayerProps) {
     const player = playerRef.current
     if (!player) return
 
-    const current = player.getCurrentTime()
+    const current = player.currentTime
     const drift = Math.abs(current - time)
 
     // Keep clients aligned with server-authoritative playback state.
     if (drift > 2) {
-      player.seekTo(time, "seconds")
+      player.currentTime = time
     }
   }, [time])
 
@@ -71,34 +71,37 @@ export default function Player({ onPlayerEvent, isHost = false }: PlayerProps) {
   return (
     <ReactPlayer
       ref={playerRef}
-      url={demoStreamUrl}
+      src={demoStreamUrl}
       playing={is_playing}
       width="100%"
       height="100%"
       controls={false}
-      onProgress={({ playedSeconds }) => {
+      onTimeUpdate={(event) => {
         if (!isHost) return
-        const now = Math.floor(playedSeconds)
+        const current = event.currentTarget.currentTime
+        const now = Math.floor(current)
         if (now - lastProgressRef.current < 5) return
         lastProgressRef.current = now
 
-        const duration = playerRef.current?.getDuration() ?? 0
-        sendPlayerEvent(buildProgressPayload("timeupdate", playedSeconds, duration))
+        const duration = playerRef.current?.duration ?? 0
+        sendPlayerEvent(buildProgressPayload("timeupdate", current, duration))
       }}
       onPause={() => {
         if (!isHost) return
-        const current = playerRef.current?.getCurrentTime() ?? 0
-        const duration = playerRef.current?.getDuration() ?? 0
+        const current = playerRef.current?.currentTime ?? 0
+        const duration = playerRef.current?.duration ?? 0
         sendPlayerEvent(buildProgressPayload("pause", current, duration))
       }}
-      onSeek={(seconds) => {
+      onSeeked={(event) => {
         if (!isHost) return
-        const duration = playerRef.current?.getDuration() ?? 0
-        sendPlayerEvent(buildProgressPayload("seeked", seconds, duration))
+        const duration = playerRef.current?.duration ?? 0
+        sendPlayerEvent(
+          buildProgressPayload("seeked", event.currentTarget.currentTime, duration)
+        )
       }}
       onEnded={() => {
         if (!isHost) return
-        const duration = playerRef.current?.getDuration() ?? 0
+        const duration = playerRef.current?.duration ?? 0
         sendPlayerEvent({
           event: "ended",
           currentTime: duration,

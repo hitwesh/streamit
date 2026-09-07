@@ -130,7 +130,7 @@ $guestToken = $guest.access_token
 $room = Invoke-RestMethod http://127.0.0.1:8000/api/rooms/create/ `
   -Method POST `
   -ContentType "application/json" `
-  -Body '{"is_private": false}' `
+  -Body '{"is_private": false, "genre":"Movies"}' `
   -WebSession $session
 
 $code = $room.code
@@ -142,7 +142,8 @@ EXPECTED
 {
   "room_id": "...",
   "code": "ABCDE",
-  "is_private": false
+  "is_private": false,
+  "genre": "Movies"
 }
 ```
 

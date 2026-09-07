@@ -5,6 +5,26 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-07 - Frontend Player Build Compatibility (STABLE)
+
+### Fix
+- Updated the demo player integration for the installed ReactPlayer v3 API.
+- Replaced the removed `url` and `onSeek` props with the v3 `src` and `onSeeked` APIs.
+- Used the native video element ref and media properties for playback time and duration.
+
+### Guarantees
+- The frontend production build completes successfully.
+- Host playback progress events retain the existing WebSocket contract.
+- No backend API or WebSocket behavior changes.
+
+### Validation
+- `npm run lint`
+- `npm run build`
+- `python manage.py check`
+- `python manage.py makemigrations --check --dry-run`
+
+---
+
 ## 2026-05-27 ? Room Genre, Admin Moderation, and Signup Flow Expansion (IN PROGRESS)
 
 ### Feature
