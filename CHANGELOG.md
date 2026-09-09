@@ -5,6 +5,17 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-09 - Player Navigation Hardening (STABLE)
+
+### Security
+- Sandboxed external playback iframes to prevent top-level page navigation and popups.
+- Preserved the permissions required for autoplay, fullscreen, encrypted media, and picture-in-picture.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-09 - Embed API Playback Provider (STABLE)
 
 ### Change

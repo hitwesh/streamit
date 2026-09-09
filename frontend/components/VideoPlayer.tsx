@@ -61,6 +61,7 @@ export default function VideoPlayer({
         height="100%"
         allowFullScreen
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+        sandbox="allow-forms allow-presentation allow-same-origin allow-scripts"
         frameBorder={0}
         title="StreamIt player"
       />
