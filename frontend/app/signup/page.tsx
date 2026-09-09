@@ -60,7 +60,8 @@ export default function SignupPage() {
           display_name: data.display_name,
           is_guest: data.is_guest,
         },
-        data.access_token
+        data.access_token,
+        data.refresh_token
       )
       router.push("/dashboard")
     } catch (error) {
@@ -86,7 +87,8 @@ export default function SignupPage() {
           display_name: data.display_name,
           is_guest: data.is_guest,
         },
-        data.access_token
+        data.access_token,
+        data.refresh_token
       )
       router.push("/dashboard")
     } catch (error) {

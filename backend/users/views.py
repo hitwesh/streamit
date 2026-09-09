@@ -34,13 +34,14 @@ def login_view(request):
     )
 
     # 🔐 JWT for WebSocket & API auth
-    token = AccessToken.for_user(user)
+    refresh = RefreshToken.for_user(user)
 
     return JsonResponse({
         "id": str(user.id),
         "display_name": user.display_name,
         "is_guest": user.is_guest,
-        "access_token": str(token),
+        "access_token": str(refresh.access_token),
+        "refresh_token": str(refresh),
     })
 
 
@@ -85,13 +86,14 @@ def signup_view(request):
         backend="django.contrib.auth.backends.ModelBackend",
     )
 
-    token = AccessToken.for_user(user)
+    refresh = RefreshToken.for_user(user)
     return JsonResponse(
         {
             "id": str(user.id),
             "display_name": user.display_name,
             "is_guest": user.is_guest,
-            "access_token": str(token),
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
         },
         status=201,
     )
@@ -126,13 +128,14 @@ def guest_login_view(request):
         backend="django.contrib.auth.backends.ModelBackend"
     )
 
-    token = AccessToken.for_user(user)
+    refresh = RefreshToken.for_user(user)
 
     return JsonResponse({
         "id": str(user.id),
         "display_name": user.display_name,
         "is_guest": True,
-        "access_token": str(token),
+        "access_token": str(refresh.access_token),
+        "refresh_token": str(refresh),
     })
 
 

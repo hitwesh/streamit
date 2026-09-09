@@ -7,7 +7,7 @@ interface SessionState {
   token: string | null
   hydrated: boolean
   hydrate: () => void
-  setSession: (user: SessionUser, token: string) => void
+  setSession: (user: SessionUser, token: string, refreshToken?: string) => void
   clear: () => void
 }
 
@@ -26,8 +26,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     set({ hydrated: true })
   },
-  setSession: (user, token) => {
-    saveSession({ user, token })
+  setSession: (user, token, refreshToken) => {
+    saveSession({ user, token, refreshToken })
     set({ user, token, hydrated: true })
   },
   clear: () => {

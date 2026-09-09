@@ -486,7 +486,7 @@ def admin_delete_room_view(request, room_id):
 
 @ratelimit(key="ip", rate="10/m", block=True)
 @api_view(["GET"])
-async def search_content(request):
+def search_content(request):
     query = (request.GET.get("q") or "").strip()
     if not query:
         return Response({"error": "q required"}, status=400)
@@ -499,16 +499,18 @@ async def search_content(request):
     if page < 1:
         return Response({"error": "page must be >= 1"}, status=400)
 
-    provider = get_provider("vidking")
-    cache_key = f"search:{provider.name}:{query}:{page}"
-    client = get_redis_client()
+    async def fetch_results():
+        provider = get_provider("vidking")
+        cache_key = f"search:{provider.name}:{query}:{page}"
+        client = get_redis_client()
 
-    cached = await client.get(cache_key)
-    if cached:
-        return Response(json.loads(cached))
+        cached = await client.get(cache_key)
+        if cached:
+            return json.loads(cached)
 
-    results = await provider.search(query, page)
-    payload = [result.__dict__ for result in results]
+        results = await provider.search(query, page)
+        payload = [result.__dict__ for result in results]
+        await client.set(cache_key, json.dumps(payload), ex=3600)
+        return payload
 
-    await client.set(cache_key, json.dumps(payload), ex=3600)
-    return Response(payload)
+    return Response(async_to_sync(fetch_results)())

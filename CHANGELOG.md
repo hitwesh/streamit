@@ -5,6 +5,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-09 - Search Endpoint and Session Renewal Fixes (STABLE)
+
+### Fix
+- Fixed `/api/rooms/search/` returning HTTP 500 because asynchronous provider work was exposed through a synchronous DRF view wrapper.
+- Added refresh-token responses to login, signup, and guest login.
+- Added `/api/auth/token/refresh/` and frontend retry handling for expired access tokens.
+
+### Behavior
+- Room search now returns normalized provider results instead of a coroutine error.
+- Authenticated room actions, including deletion, automatically retry once after refreshing an expired access token.
+- Existing browser sessions created before this change must sign in again to receive a refresh token.
+
+### Validation
+- Backend checks and focused room/provider tests pass.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-07 - Frontend Player Build Compatibility (STABLE)
 
 ### Fix

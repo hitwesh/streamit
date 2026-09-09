@@ -1,3 +1,5 @@
+import { loadSession, saveSession } from "@/lib/storage"
+
 const DEFAULT_API_BASE_URL = "http://localhost:8000"
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -20,6 +22,7 @@ export type SessionUser = {
 
 export type LoginResponse = SessionUser & {
   access_token: string
+  refresh_token: string
 }
 
 export type RoomGenre =
@@ -98,7 +101,31 @@ type RequestOptions = {
   token?: string | null
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function refreshAccessToken(): Promise<string | null> {
+  const session = loadSession()
+  if (!session?.refreshToken) return null
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/token/refresh/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh: session.refreshToken }),
+  })
+
+  if (!response.ok) return null
+
+  const data = (await response.json()) as { access: string }
+  saveSession({
+    ...session,
+    token: data.access,
+  })
+  return data.access
+}
+
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  hasRetried = false
+): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   }
@@ -127,6 +154,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     : await response.text()
 
   if (!response.ok) {
+    if (response.status === 401 && options.token && !hasRetried) {
+      const refreshedToken = await refreshAccessToken()
+      if (refreshedToken) {
+        return request(path, { ...options, token: refreshedToken }, true)
+      }
+    }
+
     const message =
       typeof data === "string"
         ? data

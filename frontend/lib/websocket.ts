@@ -1,4 +1,5 @@
 import { WS_BASE_URL } from "@/lib/api"
+import { loadSession } from "@/lib/storage"
 
 // Central WebSocket manager — one shared socket for the entire room session.
 // All components read/write through this module; none open their own sockets.
@@ -165,9 +166,10 @@ export function connectToRoom(roomCode: string, token: string): void {
     return
   }
 
+  const storedToken = loadSession()?.token ?? token
   currentRoomCode = roomCode
-  currentToken = token
-  socket = createSocket(roomCode, token)
+  currentToken = storedToken
+  socket = createSocket(roomCode, storedToken)
 }
 
 /** Send any client event. Silently drops if the socket is not open. */

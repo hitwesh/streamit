@@ -6,6 +6,7 @@ const LAST_ROOM_KEY = "streamit.room.last"
 
 export type StoredSession = {
   token: string
+  refreshToken?: string
   user: SessionUser
 }
 
