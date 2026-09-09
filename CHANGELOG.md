@@ -5,6 +5,17 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-09 - Search Provider Error Reporting (STABLE)
+
+### Fix
+- Search provider authentication and availability failures now return actionable `502` or `503` API responses instead of unhandled `500` errors.
+- Invalid TMDB credentials are reported without exposing the credential or upstream response details.
+
+### Validation
+- Added a regression test for invalid provider authentication.
+
+---
+
 ## 2026-09-09 - Search Endpoint and Session Renewal Fixes (STABLE)
 
 ### Fix

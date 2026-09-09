@@ -1,5 +1,7 @@
 import json
 import os
+import httpx
+from unittest.mock import AsyncMock, patch
 
 from django.test import TestCase
 
@@ -49,3 +51,22 @@ class RoomAPITests(TestCase):
 
         self.assertEqual(join.status_code, 200)
         self.assertTrue(join.data["is_host"])
+
+    @patch("rooms.views.get_provider")
+    def test_search_reports_provider_authentication_failure(self, mock_get_provider):
+        request = httpx.Request("GET", "https://api.themoviedb.org/3/search/multi")
+        response = httpx.Response(401, request=request)
+        provider = mock_get_provider.return_value
+        provider.name = "vidking"
+        provider.search = AsyncMock(
+            side_effect=httpx.HTTPStatusError(
+                "invalid credentials",
+                request=request,
+                response=response,
+            )
+        )
+
+        result = self.client.get("/api/rooms/search/?q=blue+velvet")
+
+        self.assertEqual(result.status_code, 502)
+        self.assertIn("TMDB_API_KEY", result.json()["error"])

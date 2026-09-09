@@ -9,6 +9,7 @@ from rest_framework import status
 from django_ratelimit.decorators import ratelimit
 
 import json
+import httpx
 
 from .models import Room, RoomParticipant, WatchProgress
 from common.redis_client import get_redis_client
@@ -513,4 +514,27 @@ def search_content(request):
         await client.set(cache_key, json.dumps(payload), ex=3600)
         return payload
 
-    return Response(async_to_sync(fetch_results)())
+    try:
+        payload = async_to_sync(fetch_results)()
+    except ValueError as error:
+        return Response(
+            {"error": str(error)},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code in {401, 403}:
+            return Response(
+                {"error": "Search provider authentication failed. Check TMDB_API_KEY."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response(
+            {"error": "Search provider request failed."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except httpx.HTTPError:
+        return Response(
+            {"error": "Search provider is unavailable."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response(payload)
