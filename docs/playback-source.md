@@ -2,7 +2,7 @@
 
 This document defines the PlaybackSource abstraction, which normalizes how external video providers are integrated into the StreamIt backend.
 
-The goal is to support multiple playback providers (Vidking, YouTube, etc.) without leaking provider-specific logic into rooms, Redis, or core lifecycle code.
+The goal is to support multiple playback providers (Embed API, YouTube, etc.) without leaking provider-specific logic into rooms, Redis, or core lifecycle code.
 
 ## 1. PlaybackSource Contract
 
@@ -13,7 +13,7 @@ A PlaybackSource represents what is being played in a room, independent of how i
 PlaybackSource
 - provider: string
   - Identifier for the playback provider.
-  - Example: "vidking"
+  - Example: "embed-api"
 - media_type: "movie" | "tv"
   - Distinguishes standalone movies from episodic content.
 - external_id: string
@@ -40,9 +40,9 @@ PlaybackSource
 - A PlaybackSource never talks to Redis or the database
 - A PlaybackSource is pure description + capability
 
-## 2. Vidking Adapter Behavior
+## 2. Embed API Adapter Behavior
 
-Vidking is treated as a passive embed provider.
+Embed API is treated as a passive embed provider.
 
 It does not:
 
@@ -52,7 +52,7 @@ It does not:
 
 ### Provider Identifier
 
-provider = "vidking"
+provider = "embed-api"
 
 ### URL Construction (Derived, Not Stored)
 
@@ -74,15 +74,12 @@ These parameters are never stored in the backend:
 
 They are supplied by the frontend at render time.
 
-### Vidking Capabilities
+### Embed API Capabilities
 
-supports_events = true
-supports_progress = true
+supports_events = false
+supports_progress = false
 
 capabilities:
-- seek = true
-- pause = true
-- resume = true
 - autoplay = true
 
 ## 3. What Rooms Store vs What Is Derived
@@ -131,12 +128,12 @@ This ensures:
 
 Playback authority always belongs to the room host, never the provider.
 
-Vidking emits events via postMessage, but these are informational, not authoritative.
+Embed API playback is rendered in a passive iframe; room playback commands remain authoritative.
 
 ### Correct Event Flow
 
-Vidking iframe
-    ↓ postMessage
+Embed API iframe
+  ↓ rendered playback
 Frontend
     ↓ WebSocket event (PLAY / PAUSE / SEEK)
 RoomPresenceConsumer
@@ -177,6 +174,6 @@ All must conform to the PlaybackSource contract.
 ## Status
 
 - PlaybackSource abstraction: STABLE
-- Vidking adapter: SUPPORTED
+- Embed API adapter: SUPPORTED
 - Metadata providers (TMDB): OUT OF SCOPE
 - Progress persistence: OUT OF SCOPE

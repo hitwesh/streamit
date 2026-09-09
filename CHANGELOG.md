@@ -5,6 +5,20 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-09 - Embed API Playback Provider (STABLE)
+
+### Change
+- Replaced Vidking playback embeds with Embed API at `watch.embed-api.stream`.
+- Movie URLs use `/embed/movie/<TMDB-or-IMDb-id>`.
+- TV URLs use `/embed/tv/<TMDB-or-IMDb-id>/<season>/<episode>`.
+- External iframe permissions include autoplay, fullscreen, encrypted media, and picture-in-picture.
+- TMDB remains the search and metadata source.
+
+### Validation
+- Provider registry, search normalization, and movie/TV URL tests updated for `embed-api`.
+
+---
+
 ## 2026-09-09 - Search Provider Error Reporting (STABLE)
 
 ### Fix

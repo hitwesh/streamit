@@ -1,9 +1,9 @@
 from providers.base import BaseProvider
-from providers.vidking import VidkingProvider
+from providers.embed_api import EmbedApiProvider
 
 
 PROVIDERS: dict[str, BaseProvider] = {
-    "vidking": VidkingProvider(),
+    "embed-api": EmbedApiProvider(),
 }
 
 

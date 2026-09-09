@@ -22,15 +22,13 @@ export default function VideoPlayer({
   const src = useMemo(() => {
     if (!provider || !videoId) return ""
 
-    if (provider === "vidking") {
+    if (provider === "embed-api") {
       if (mediaType === "tv") {
         if (!season || !episode) return ""
-        const params = new URLSearchParams({ autoPlay: "true" })
-        return `https://www.vidking.net/embed/tv/${videoId}/${season}/${episode}?${params.toString()}`
+        return `https://watch.embed-api.stream/embed/tv/${videoId}/${season}/${episode}`
       }
 
-      const params = new URLSearchParams({ autoPlay: "true" })
-      return `https://www.vidking.net/embed/movie/${videoId}?${params.toString()}`
+      return `https://watch.embed-api.stream/embed/movie/${videoId}`
     }
 
     return ""
@@ -62,6 +60,7 @@ export default function VideoPlayer({
         width="100%"
         height="100%"
         allowFullScreen
+        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
         frameBorder={0}
         title="StreamIt player"
       />

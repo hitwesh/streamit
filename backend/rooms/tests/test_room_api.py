@@ -57,7 +57,7 @@ class RoomAPITests(TestCase):
         request = httpx.Request("GET", "https://api.themoviedb.org/3/search/multi")
         response = httpx.Response(401, request=request)
         provider = mock_get_provider.return_value
-        provider.name = "vidking"
+        provider.name = "embed-api"
         provider.search = AsyncMock(
             side_effect=httpx.HTTPStatusError(
                 "invalid credentials",

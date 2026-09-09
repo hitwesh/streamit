@@ -15,7 +15,7 @@ Backend service for a real-time watch-together platform with rooms, chat, and sy
 - Room lifecycle state machine (CREATED -> LIVE -> GRACE -> EXPIRED)
 - Grace period with Redis TTL and host reconnect support
 - Public room discovery with Redis-backed viewer counts
-- Provider abstraction for search and embed URL resolution (Vidking)
+- Provider abstraction for TMDB search and Embed API playback URL resolution
 - Per-user watch progress persistence and resume endpoints
 - Health and metrics endpoints
 - Structured logging and security headers

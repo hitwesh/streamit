@@ -27,7 +27,7 @@ StreamIt is a Django 4.2 backend that serves REST APIs and real-time WebSockets 
 - **common/**: Redis client and canonical Redis key helpers.
 - **providers/**: PlaybackSource abstraction and provider resolvers.
   - `base.py`: PlaybackSource contract.
-  - `vidking.py`: Vidking source builder and embed URL derivation.
+  - `embed_api.py`: Embed API source builder and embed URL derivation.
   - `resolver.py`: Canonical entry point for provider resolution.
 
 ## Authentication & Authorization
@@ -119,7 +119,7 @@ Viewer counts are derived from Redis `room:{code}:viewers` and reflect active so
 ## PlaybackSource Abstraction
 Provider integration is centralized under `providers/` and is backend-only:
 - `PlaybackSource` defines provider, media type, external ID, optional season/episode, and capabilities.
-- `resolve_playback_source(...)` returns a normalized PlaybackSource.
+- `resolve_playback_source(...)` returns a normalized PlaybackSource for Embed API.
 - `derive_embed_url(...)` returns provider-specific embed URLs.
 
 This keeps provider logic isolated from rooms, Redis, and lifecycle logic.

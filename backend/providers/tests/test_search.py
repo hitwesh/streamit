@@ -8,7 +8,7 @@ from providers import tmdb_client
 
 
 class SearchTests(TestCase):
-    @patch("providers.vidking.search_tmdb", new_callable=AsyncMock)
+    @patch("providers.embed_api.search_tmdb", new_callable=AsyncMock)
     def test_search_returns_normalized_results(self, mock_search):
         mock_search.return_value = {
             "results": [
@@ -22,7 +22,7 @@ class SearchTests(TestCase):
             ]
         }
 
-        provider = get_provider("vidking")
+        provider = get_provider("embed-api")
         results = async_to_sync(provider.search)("test")
 
         self.assertEqual(len(results), 1)

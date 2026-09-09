@@ -1,14 +1,12 @@
-# providers/vidking.py
-
 from providers.base import BaseProvider, PlaybackSource
 from providers.search_types import ContentSearchResult
 from providers.tmdb_client import search_tmdb
 
 
-VIDKING_BASE_URL = "https://www.vidking.net/embed"
+EMBED_API_BASE_URL = "https://watch.embed-api.stream/embed"
 
 
-def build_vidking_source(
+def build_embed_api_source(
     *,
     media_type: str,
     external_id: str,
@@ -16,49 +14,42 @@ def build_vidking_source(
     episode: int | None = None,
 ) -> PlaybackSource:
     if media_type not in {"movie", "tv"}:
-        raise ValueError("Vidking supports only movie or tv media types")
+        raise ValueError("Embed API supports only movie or tv media types")
 
     if media_type == "tv" and (season is None or episode is None):
         raise ValueError("TV playback requires season and episode")
 
     return PlaybackSource(
-        provider="vidking",
+        provider="embed-api",
         media_type=media_type,
         external_id=external_id,
         season=season,
         episode=episode,
-        supports_events=True,
-        supports_progress=True,
+        supports_events=False,
+        supports_progress=False,
         capabilities={
-            "seek": True,
-            "pause": True,
-            "resume": True,
             "autoplay": True,
         },
     )
 
 
-def derive_vidking_embed_url(source: PlaybackSource) -> str:
+def derive_embed_api_url(source: PlaybackSource) -> str:
     if source.media_type == "movie":
-        return f"{VIDKING_BASE_URL}/movie/{source.external_id}"
+        return f"{EMBED_API_BASE_URL}/movie/{source.external_id}"
 
-    return (
-        f"{VIDKING_BASE_URL}/tv/"
-        f"{source.external_id}/{source.season}/{source.episode}"
-    )
+    return f"{EMBED_API_BASE_URL}/tv/{source.external_id}/{source.season}/{source.episode}"
 
 
-class VidkingProvider(BaseProvider):
-    name = "vidking"
+class EmbedApiProvider(BaseProvider):
+    name = "embed-api"
 
     async def search(self, query: str, page: int = 1) -> list[ContentSearchResult]:
         data = await search_tmdb(query, page)
-
         results: list[ContentSearchResult] = []
 
         for item in data.get("results", []):
             media_type = item.get("media_type")
-            if media_type not in ["movie", "tv"]:
+            if media_type not in {"movie", "tv"}:
                 continue
 
             title = item.get("title") or item.get("name")
@@ -74,7 +65,7 @@ class VidkingProvider(BaseProvider):
 
             results.append(
                 ContentSearchResult(
-                    provider="vidking",
+                    provider=self.name,
                     stream_id=str(item.get("id")),
                     media_type=media_type,
                     title=title or "",

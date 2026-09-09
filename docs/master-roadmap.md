@@ -4,7 +4,7 @@ This document defines **what must exist**, **in what order**, and **why** to tur
 
 This roadmap assumes:
 - **Django + Channels + Redis** backend
-- **External streaming APIs** (VidKing or similar)
+- **External streaming APIs** (Embed API or similar)
 - **Web frontend** (later)
 - **Long-term maintainability** as a first-class goal
 
@@ -99,7 +99,7 @@ If a decision violates one of these, it is wrong.
 - poster
 
 ### Tasks
-- VidKing adapter (read-only first) https://www.vidking.net/#documentation
+- Embed API adapter (read-only first) https://watch.embed-api.stream/
 - Normalize API response
 - Store metadata only
 - Validate stream availability on host select

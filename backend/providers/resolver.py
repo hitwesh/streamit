@@ -1,8 +1,8 @@
 # providers/resolver.py
 
-from providers.vidking import (
-    build_vidking_source,
-    derive_vidking_embed_url,
+from providers.embed_api import (
+    build_embed_api_source,
+    derive_embed_api_url,
 )
 from providers.base import PlaybackSource
 
@@ -15,8 +15,8 @@ def resolve_playback_source(
     season: int | None = None,
     episode: int | None = None,
 ) -> PlaybackSource:
-    if provider == "vidking":
-        return build_vidking_source(
+    if provider == "embed-api":
+        return build_embed_api_source(
             media_type=media_type,
             external_id=external_id,
             season=season,
@@ -27,7 +27,7 @@ def resolve_playback_source(
 
 
 def derive_embed_url(source: PlaybackSource) -> str:
-    if source.provider == "vidking":
-        return derive_vidking_embed_url(source)
+    if source.provider == "embed-api":
+        return derive_embed_api_url(source)
 
     raise ValueError(f"No embed URL resolver for provider: {source.provider}")
