@@ -52,6 +52,29 @@ class RoomAPITests(TestCase):
         self.assertEqual(join.status_code, 200)
         self.assertTrue(join.data["is_host"])
 
+    def test_host_can_update_room_settings(self):
+        create = self.client.post(
+            "/api/rooms/create/",
+            {"is_private": False, "genre": "Movies"},
+            format="json",
+        )
+
+        response = self.client.post(
+            "/api/rooms/settings/",
+            {
+                "room_id": create.data["room_id"],
+                "is_private": True,
+                "entry_mode": "APPROVAL",
+                "is_chat_enabled": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["is_private"])
+        self.assertEqual(response.data["entry_mode"], "APPROVAL")
+        self.assertFalse(response.data["is_chat_enabled"])
+
     @patch("rooms.views.get_provider")
     def test_search_reports_provider_authentication_failure(self, mock_get_provider):
         request = httpx.Request("GET", "https://api.themoviedb.org/3/search/multi")

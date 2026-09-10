@@ -24,6 +24,7 @@ import {
   resumeProgress,
   searchContent,
   updateRoomSource,
+  updateRoomSettings,
   type ParticipantRecord,
   type RoomDetail,
   type SearchResult,
@@ -62,6 +63,7 @@ export default function RoomPage() {
     last_position_seconds: number
     completed: boolean
   } | null>(null)
+  const [settingsLoading, setSettingsLoading] = useState(false)
 
   const playbackTime = useRoomStore((s) => s.playback.time)
   const playbackState = useRoomStore((s) => s.playback)
@@ -177,16 +179,32 @@ export default function RoomPage() {
           setSystemMessages((prev) => [...prev, "Room deleted by host"])
           break
 
+        case "ROOM_SETTINGS":
+          setRoomDetail((previous) => previous ? {
+            ...previous,
+            is_private: event.is_private,
+            entry_mode: event.entry_mode,
+            is_chat_enabled: event.is_chat_enabled,
+          } : previous)
+          break
+
         case "ERROR":
           setSystemMessages((prev) => [...prev, event.message])
           break
       }
     })
 
-    const unsubscribeConnection = addConnectionHandler((state) => {
+    const unsubscribeConnection = addConnectionHandler((state, closeCode) => {
       if (state === "open") setConnectionState("open")
       if (state === "closed") setConnectionState("closed")
       if (state === "error") setConnectionState("error")
+      if (state === "closed" && (closeCode === 4010 || closeCode === 4011)) {
+        setSystemMessages((prev) => [
+          ...prev,
+          closeCode === 4010 ? "You are banned from this room" : "You were removed from this room",
+        ])
+        router.push("/")
+      }
     })
 
     return () => {
@@ -195,7 +213,7 @@ export default function RoomPage() {
       disconnectSocket()
       resetRoom()
     }
-  }, [roomCode, token, pendingApproval, resetRoom])
+  }, [roomCode, token, pendingApproval, resetRoom, router])
 
   useEffect(() => {
     if (connectionState !== "open") return
@@ -257,6 +275,23 @@ export default function RoomPage() {
     sendMessage({ type: "SYNC_CHECK", client_time: playbackTime })
   }
 
+  const handleRoomSettings = async (changes: {
+    is_private?: boolean
+    entry_mode?: "APPROVAL" | "PASSWORD" | null
+    is_chat_enabled?: boolean
+  }) => {
+    if (!roomId || !token) return
+    setSettingsLoading(true)
+    try {
+      const updated = await updateRoomSettings({ room_id: roomId, ...changes }, token)
+      setRoomDetail((previous) => previous ? { ...previous, ...updated } : previous)
+    } catch (error) {
+      setSystemMessages((previous) => [...previous, getErrorMessage(error)])
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
   const handlePlayerEvent = (data: PlayerEventData) => {
     if (!isHost) return
     sendMessage({ type: "PLAYER_EVENT", data })
@@ -278,20 +313,14 @@ export default function RoomPage() {
 
   const handleSelectMedia = async (item: SearchResult) => {
     if (!roomId || !token) return
-    if (item.media_type !== "movie") {
-      setSystemMessages((prev) => [
-        ...prev,
-        "Only movie results are supported for playback right now",
-      ])
-      return
-    }
-
     try {
       const updated = await updateRoomSource(
         {
           room_id: roomId,
           provider: item.provider,
           video_id: item.stream_id,
+          media_type: item.media_type === "tv" ? "tv" : "movie",
+          ...(item.media_type === "tv" ? { season: 1, episode: 1 } : {}),
         },
         token
       )
@@ -302,6 +331,9 @@ export default function RoomPage() {
               ...prev,
               video_provider: updated.video_provider,
               video_id: updated.video_id,
+              video_media_type: updated.video_media_type,
+              video_season: updated.video_season,
+              video_episode: updated.video_episode,
             }
           : prev
       )
@@ -468,6 +500,9 @@ export default function RoomPage() {
                     <VideoPlayer
                       provider={roomDetail?.video_provider ?? ""}
                       videoId={roomDetail?.video_id ?? ""}
+                      mediaType={roomDetail?.video_media_type ?? "movie"}
+                      season={roomDetail?.video_season}
+                      episode={roomDetail?.video_episode}
                     />
                   )}
                 </div>
@@ -528,6 +563,18 @@ export default function RoomPage() {
                 ) : null}
               </div>
             </div>
+
+            {isHost ? (
+              <div className="panel-soft flex flex-wrap items-center gap-2 p-4">
+                <span className="text-xs text-[color:var(--color-muted)]">Room settings</span>
+                <button disabled={settingsLoading} onClick={() => void handleRoomSettings({ is_private: !isPrivateRoom, entry_mode: !isPrivateRoom ? "APPROVAL" : null })} className="btn btn-outline">
+                  Make {isPrivateRoom ? "public" : "private"}
+                </button>
+                <button disabled={settingsLoading} onClick={() => void handleRoomSettings({ is_chat_enabled: !roomDetail?.is_chat_enabled })} className="btn btn-outline">
+                  {roomDetail?.is_chat_enabled ? "Disable chat" : "Enable chat"}
+                </button>
+              </div>
+            ) : null}
 
             {isHost ? (
               <div className="panel-soft flex flex-col gap-3 p-4">

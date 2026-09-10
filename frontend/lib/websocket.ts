@@ -38,6 +38,7 @@ export type ServerEvent =
   | { type: "HOST_DISCONNECTED"; grace_seconds: number }
   | { type: "HOST_RECONNECTED" }
   | { type: "ROOM_DELETED" }
+  | { type: "ROOM_SETTINGS"; is_private: boolean; entry_mode: string | null; is_chat_enabled: boolean }
   | { type: "SYNC_CORRECTION"; time: number; version: number }
   | { type: "ERROR"; message: string; code?: string }
 
@@ -58,7 +59,7 @@ type MessageHandler = (event: ServerEvent) => void
 const handlers = new Set<MessageHandler>()
 
 type ConnectionState = "open" | "closed" | "error"
-type ConnectionHandler = (state: ConnectionState) => void
+type ConnectionHandler = (state: ConnectionState, closeCode?: number) => void
 const connectionHandlers = new Set<ConnectionHandler>()
 
 // Backend-defined policy/auth close codes from sync/consumers.py.
@@ -124,7 +125,7 @@ function createSocket(roomCode: string, token: string): WebSocket {
     })
 
     socket = null
-    connectionHandlers.forEach((handler) => handler("closed"))
+    connectionHandlers.forEach((handler) => handler("closed", closeCode))
 
     // If the socket never opened, this was likely a handshake/auth/policy reject.
     // Do not loop reconnect attempts in that state.

@@ -618,6 +618,14 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         }))
         await self.close()
 
+    async def room_settings_updated(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "ROOM_SETTINGS",
+            "is_private": event["is_private"],
+            "entry_mode": event["entry_mode"],
+            "is_chat_enabled": event["is_chat_enabled"],
+        }))
+
     async def force_disconnect(self, event):
         if str(self.user.id) == event.get("user_id"):
             await self.close(code=4011)

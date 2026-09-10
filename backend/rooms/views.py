@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -176,6 +177,9 @@ def room_detail_view(request, room_code):
         "host_id": str(room.host_id),
         "video_provider": room.video_provider,
         "video_id": room.video_id,
+        "video_media_type": room.video_media_type,
+        "video_season": room.video_season,
+        "video_episode": room.video_episode,
         "created_at": room.created_at.isoformat(),
         "is_host": room.host_id == request.user.id,
     })
@@ -218,12 +222,20 @@ def room_source_view(request):
     room_id = request.data.get("room_id")
     provider = (request.data.get("provider") or "").strip()
     video_id = (request.data.get("video_id") or "").strip()
+    media_type = (request.data.get("media_type") or "movie").strip()
+    season = request.data.get("season")
+    episode = request.data.get("episode")
 
     if not room_id or not provider or not video_id:
         return Response(
             {"error": "room_id, provider, and video_id required"},
             status=400,
         )
+
+    if media_type not in {"movie", "tv"}:
+        return Response({"error": "Invalid media_type"}, status=400)
+    if media_type == "tv" and (season is None or episode is None):
+        return Response({"error": "TV media requires season and episode"}, status=400)
 
     room = get_object_or_404(Room, id=room_id)
 
@@ -237,12 +249,65 @@ def room_source_view(request):
 
     room.video_provider = provider
     room.video_id = video_id
-    room.save(update_fields=["video_provider", "video_id"])
+    room.video_media_type = media_type
+    room.video_season = season if media_type == "tv" else None
+    room.video_episode = episode if media_type == "tv" else None
+    room.save(update_fields=[
+        "video_provider", "video_id", "video_media_type",
+        "video_season", "video_episode",
+    ])
 
     return Response({
         "room_id": str(room.id),
         "video_provider": room.video_provider,
         "video_id": room.video_id,
+        "video_media_type": room.video_media_type,
+        "video_season": room.video_season,
+        "video_episode": room.video_episode,
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def room_settings_view(request):
+    room = get_object_or_404(Room, id=request.data.get("room_id"))
+    if room.host_id != request.user.id:
+        return Response({"error": "Only host can update room settings"}, status=403)
+
+    is_private = request.data.get("is_private")
+    entry_mode = request.data.get("entry_mode")
+    chat_enabled = request.data.get("is_chat_enabled")
+
+    parsed_private = _parse_bool(is_private)
+    parsed_chat = _parse_bool(chat_enabled)
+
+    if parsed_private is not None:
+        room.is_private = parsed_private
+        if room.is_private:
+            if entry_mode not in {Room.ENTRY_APPROVAL, Room.ENTRY_PASSWORD}:
+                entry_mode = room.entry_mode or Room.ENTRY_APPROVAL
+            room.entry_mode = entry_mode
+        else:
+            room.entry_mode = None
+
+    if parsed_chat is not None:
+        room.is_chat_enabled = parsed_chat
+
+    room.save(update_fields=["is_private", "entry_mode", "is_chat_enabled"])
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"room_{room.code}",
+        {
+            "type": "room_settings_updated",
+            "is_private": room.is_private,
+            "entry_mode": room.entry_mode,
+            "is_chat_enabled": room.is_chat_enabled,
+        },
+    )
+    return Response({
+        "is_private": room.is_private,
+        "entry_mode": room.entry_mode,
+        "is_chat_enabled": room.is_chat_enabled,
     })
 
 

@@ -19,6 +19,24 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Room Controls and Session Recovery (STABLE)
+
+### Fix
+- Host room settings now support changing public/private visibility and enabling or disabling chat while connected.
+- Room setting changes are broadcast to all connected clients immediately.
+- Kicked and banned WebSocket clients are redirected out of the room instead of remaining on stale room controls.
+- Frontend API requests now use the refreshed access token from storage, preventing repeated expired-token failures during polling.
+- TV search selections now retain media type and default to season 1, episode 1.
+
+### Limitation
+- Embed API documents only iframe embedding and does not expose a play/pause/seek `postMessage` contract. WebSocket playback state is authoritative, but exact control of the cross-origin provider player requires provider support.
+
+### Validation
+- Backend checks and 11 focused room/moderation/playback tests pass.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Public Room Goes Live on Host Connect (STABLE)
 
 ### Fix

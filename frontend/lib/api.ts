@@ -133,8 +133,9 @@ async function request<T>(
     "Content-Type": "application/json",
   }
 
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`
+  const activeToken = loadSession()?.token ?? options.token
+  if (activeToken) {
+    headers.Authorization = `Bearer ${activeToken}`
   }
 
   let response: Response
@@ -296,6 +297,26 @@ export function updateRoomSource(
   video_episode: number | null
 }> {
   return request("/api/rooms/source/", {
+    method: "POST",
+    body: payload,
+    token,
+  })
+}
+
+export function updateRoomSettings(
+  payload: {
+    room_id: string
+    is_private?: boolean
+    entry_mode?: "APPROVAL" | "PASSWORD" | null
+    is_chat_enabled?: boolean
+  },
+  token?: string | null
+): Promise<{
+  is_private: boolean
+  entry_mode: string | null
+  is_chat_enabled: boolean
+}> {
+  return request("/api/rooms/settings/", {
     method: "POST",
     body: payload,
     token,
