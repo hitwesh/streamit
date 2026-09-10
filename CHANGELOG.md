@@ -19,6 +19,17 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Public Room Goes Live on Host Connect (STABLE)
+
+### Fix
+- Newly created rooms now transition from `CREATED` to `LIVE` when the approved host connects to WebSocket.
+- Public room discovery can now list a hosted public room for other browsers.
+
+### Validation
+- WebSocket lifecycle and public-room discovery tests pass.
+
+---
+
 ## 2026-09-10 - CSP Backend Connection Fix (STABLE)
 
 ### Fix

@@ -301,9 +301,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"room_{room['code']}"
 
         if self.user.id == self.room_data["host_id"]:
-            if await is_in_grace(self.room_data["code"]):
+            if self.room_data["state"] == Room.State.CREATED:
+                await mark_room_live_by_id(self.room_data["id"])
+                self.room_data["state"] = Room.State.LIVE
+            elif await is_in_grace(self.room_data["code"]):
                 await clear_grace(self.room_data["code"])
                 await mark_room_live_by_id(self.room_data["id"])
+                self.room_data["state"] = Room.State.LIVE
 
                 await self.channel_layer.group_send(
                     self.room_group_name,

@@ -1,4 +1,5 @@
 from channels.testing import WebsocketCommunicator
+from channels.db import database_sync_to_async
 from django.test import TransactionTestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -53,6 +54,18 @@ class PlaybackAuthorityTests(TransactionTestCase):
         # Viewer should NOT receive their own playback event
         with self.assertRaises(AssertionError):
             await wait_for_event(comm, "PLAYBACK_STATE", timeout=0.3)
+
+    async def test_host_connection_marks_created_room_live(self):
+        comm = await self._connect(self.host)
+        connected, _ = await comm.connect()
+        self.assertTrue(connected)
+
+        await wait_for_event(comm, "PLAYBACK_STATE")
+        state = await database_sync_to_async(
+            lambda: Room.objects.get(id=self.room.id).state
+        )()
+        self.assertEqual(state, Room.State.LIVE)
+        await comm.disconnect()
 
     async def test_host_can_control_playback(self):
         comm = await self._connect(self.host)
