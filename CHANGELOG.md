@@ -5,6 +5,21 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - External Player Popup Hardening (STABLE)
+
+### Security
+- Removed iframe permissions for forms and popup-capable behavior.
+- Added a restrictive frame Content Security Policy allowing only VidPhantom embeds.
+- Disabled provider autoplay and omitted the referrer from external player requests.
+
+### Limitation
+- CAPTCHA or advertising overlays rendered inside VidPhantom remain provider-owned content and cannot be removed by StreamIt.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-09 - Player Navigation Hardening (STABLE)
 
 ### Security

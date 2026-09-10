@@ -83,6 +83,9 @@ export type RoomDetail = {
   host_id: string
   video_provider: string
   video_id: string
+  video_media_type: "movie" | "tv"
+  video_season: number | null
+  video_episode: number | null
   created_at: string
   is_host: boolean
 }
@@ -279,9 +282,19 @@ export function updateRoomSource(
     room_id: string
     provider: string
     video_id: string
+    media_type?: "movie" | "tv"
+    season?: number
+    episode?: number
   },
   token?: string | null
-): Promise<{ room_id: string; video_provider: string; video_id: string }> {
+): Promise<{
+  room_id: string
+  video_provider: string
+  video_id: string
+  video_media_type: "movie" | "tv"
+  video_season: number | null
+  video_episode: number | null
+}> {
   return request("/api/rooms/source/", {
     method: "POST",
     body: payload,
