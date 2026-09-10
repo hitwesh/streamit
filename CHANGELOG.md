@@ -5,6 +5,18 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Signup Form Submission Fix (STABLE)
+
+### Fix
+- Changed account creation to use a native form submit handler with `preventDefault`.
+- Create account now works consistently from both button clicks and the Enter key.
+
+### Validation
+- Signup endpoint returned HTTP 201 in a live local request.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - External Player Popup Hardening (STABLE)
 
 ### Security

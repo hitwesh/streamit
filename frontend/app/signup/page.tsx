@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { guestLogin, signup } from "@/lib/api"
@@ -28,7 +28,8 @@ export default function SignupPage() {
     hydrate()
   }, [hydrate])
 
-  const handleSignup = async () => {
+  const handleSignup = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
     setSignupError(null)
     setSignupLoading(true)
 
@@ -126,7 +127,7 @@ export default function SignupPage() {
             Set up your profile and start hosting rooms in minutes.
           </p>
 
-          <div className="mt-6 space-y-3">
+          <form className="mt-6 space-y-3" onSubmit={handleSignup}>
             <input
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
@@ -158,13 +159,13 @@ export default function SignupPage() {
               <p className="text-xs text-red-400">{signupError}</p>
             ) : null}
             <button
-              onClick={handleSignup}
+              type="submit"
               className="btn btn-primary w-full"
               disabled={signupLoading}
             >
               {signupLoading ? "Creating…" : "Create account"}
             </button>
-          </div>
+          </form>
 
           <div className="mt-6 flex items-center justify-between text-xs text-[color:var(--color-muted)]">
             <span>Already invited?</span>
