@@ -42,6 +42,14 @@ export type ServerEvent =
   | { type: "HOST_RECONNECTED" }
   | { type: "ROOM_DELETED" }
   | { type: "ROOM_SETTINGS"; is_private: boolean; entry_mode: string | null; is_chat_enabled: boolean }
+  | {
+      type: "ROOM_MEDIA_CHANGED"
+      video_provider: string
+      video_id: string
+      video_media_type: "movie" | "tv"
+      video_season: number | null
+      video_episode: number | null
+    }
   | { type: "INDEPENDENT_PLAYBACK"; user_id: string; enabled: boolean }
   | { type: "USER_MUTED"; user_id: string }
   | { type: "USER_UNMUTED"; user_id: string }

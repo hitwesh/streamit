@@ -296,6 +296,19 @@ def room_source_view(request):
         "video_season", "video_episode",
     ])
 
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"room_{room.code}",
+        {
+            "type": "room_source_updated",
+            "video_provider": room.video_provider,
+            "video_id": room.video_id,
+            "video_media_type": room.video_media_type,
+            "video_season": room.video_season,
+            "video_episode": room.video_episode,
+        },
+    )
+
     return Response({
         "room_id": str(room.id),
         "video_provider": room.video_provider,

@@ -727,6 +727,16 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "is_chat_enabled": event["is_chat_enabled"],
         }))
 
+    async def room_source_updated(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "ROOM_MEDIA_CHANGED",
+            "video_provider": event["video_provider"],
+            "video_id": event["video_id"],
+            "video_media_type": event["video_media_type"],
+            "video_season": event["video_season"],
+            "video_episode": event["video_episode"],
+        }))
+
     async def independent_playback_updated(self, event):
         await self.send(text_data=json.dumps({
             "type": "INDEPENDENT_PLAYBACK",

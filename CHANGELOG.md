@@ -5,6 +5,22 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Realtime Media Broadcast, Compact Search & Safe Room Deletion (STABLE)
+
+### Fix
+- **Realtime Media Broadcast**: When the host selects a title or updates room media via `room_source_view`, the backend now broadcasts `room_source_updated` over the channel layer. All connected participants immediately receive `ROOM_MEDIA_CHANGED` and update their player in real time, eliminating the need to manually refresh the browser.
+- **Enhanced Player Synchronization**: Relaxed origin checks and switched targetOrigin to wildcard `*` in `VideoPlayer` to ensure `streamframe` postMessage commands are never dropped during cross-origin redirects. Added continuous sync correction for viewers.
+
+### UI
+- **Search Results Expand/Collapse Toggle**: Limited initial title search results to a clean 4-item preview. Added a `[ ▾ View more titles / ▴ Show less ]` toggle button to prevent long lists from cluttering the layout.
+- **Relocated Delete Room with Double Confirmation**: Removed the hazardous "Delete room" button from the top header bar. Re-positioned it in a dedicated Danger Zone at the bottom of the page with a two-step confirmation dialog ("Are you sure?" -> "Final confirmation") before deletion occurs.
+
+### Validation
+- Frontend Next.js production build passes with zero TypeScript errors.
+- Room and sync test suites pass.
+
+---
+
 ## 2026-09-10 - Automated Playback Sync, Solo Mode, Banned List & Host Unmute (STABLE)
 
 ### Change

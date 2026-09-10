@@ -66,6 +66,8 @@ export default function RoomPage() {
   const [independentUsers, setIndependentUsers] = useState<string[]>([])
   const [mutedUsers, setMutedUsers] = useState<string[]>([])
   const [isSoloMode, setIsSoloMode] = useState(false)
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<0 | 1 | 2>(0)
 
   const playbackTime = useRoomStore((s) => s.playback.time)
   const playbackState = useRoomStore((s) => s.playback)
@@ -195,6 +197,17 @@ export default function RoomPage() {
             is_private: event.is_private,
             entry_mode: event.entry_mode,
             is_chat_enabled: event.is_chat_enabled,
+          } : previous)
+          break
+
+        case "ROOM_MEDIA_CHANGED":
+          setRoomDetail((previous) => previous ? {
+            ...previous,
+            video_provider: event.video_provider,
+            video_id: event.video_id,
+            video_media_type: event.video_media_type,
+            video_season: event.video_season,
+            video_episode: event.video_episode,
           } : previous)
           break
 
@@ -483,11 +496,6 @@ export default function RoomPage() {
             <Link href="/" className="btn btn-outline">
               Back to discover
             </Link>
-            {isHost ? (
-              <button onClick={handleDeleteRoom} className="btn btn-outline">
-                Delete room
-              </button>
-            ) : null}
             {user ? (
               <span className="text-xs text-[color:var(--color-muted)]">
                 {user.display_name}
@@ -669,7 +677,7 @@ export default function RoomPage() {
                       Search for a title to set the room media.
                     </p>
                   ) : null}
-                  {searchResults.map((result) => (
+                  {(isSearchExpanded ? searchResults : searchResults.slice(0, 4)).map((result) => (
                     <div
                       key={`${result.provider}-${result.stream_id}`}
                       className="border border-white/10 bg-white/5 p-3"
@@ -699,12 +707,83 @@ export default function RoomPage() {
                       </div>
                       <button
                         onClick={() => handleSelectMedia(result)}
-                        className="btn btn-ghost mt-3"
+                        className="btn btn-ghost mt-3 text-xs"
                       >
                         Use this title
                       </button>
                     </div>
                   ))}
+                </div>
+
+                {searchResults.length > 4 ? (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                      className="btn btn-outline text-xs"
+                    >
+                      {isSearchExpanded
+                        ? "▴ Show less"
+                        : `▾ View more titles (${searchResults.length - 4} remaining)`}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isHost ? (
+              <div className="panel-soft border border-red-500/20 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-red-400">Danger Zone</h3>
+                    <p className="text-xs text-[color:var(--color-muted)]">
+                      Permanently end the stream session and remove this room.
+                    </p>
+                  </div>
+
+                  {deleteConfirmStep === 0 ? (
+                    <button
+                      onClick={() => setDeleteConfirmStep(1)}
+                      className="btn btn-outline border-red-500/30 text-xs text-red-400 hover:bg-red-500/10"
+                    >
+                      Delete Room
+                    </button>
+                  ) : deleteConfirmStep === 1 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-amber-400">
+                        Are you sure?
+                      </span>
+                      <button
+                        onClick={() => setDeleteConfirmStep(2)}
+                        className="btn btn-primary bg-amber-600 text-xs hover:bg-amber-700"
+                      >
+                        Confirm Delete (1/2)
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmStep(0)}
+                        className="btn btn-ghost text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-red-400">
+                        Final check: cannot be undone!
+                      </span>
+                      <button
+                        onClick={handleDeleteRoom}
+                        className="btn btn-primary bg-red-600 text-xs hover:bg-red-700"
+                      >
+                        Permanently Delete (2/2)
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmStep(0)}
+                        className="btn btn-ghost text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}

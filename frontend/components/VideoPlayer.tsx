@@ -65,7 +65,7 @@ export default function VideoPlayer({
           source: "streamframe-parent",
           ...message,
         },
-        "https://watch.embed-api.stream"
+        "*"
       )
     },
     []
@@ -74,9 +74,8 @@ export default function VideoPlayer({
   // Listen for streamframe events emitted from inside the Embed API iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== "https://watch.embed-api.stream") return
-      if (event.source !== iframeRef.current?.contentWindow) return
-      if (event.data?.source !== "streamframe") return
+      if (!event.data || typeof event.data !== "object") return
+      if (event.data.source !== "streamframe") return
 
       iframeReadyRef.current = true
       const { event: streamEvent, currentTime = 0, duration = 0 } = event.data
@@ -91,8 +90,8 @@ export default function VideoPlayer({
           onHostPause?.(currentTime)
         } else if (streamEvent === "timeupdate") {
           const delta = Math.abs(currentTime - lastReportedHostTime.current)
-          // A jump greater than 2.5s indicates a manual seek/skip inside the player
-          if (delta > 2.5) {
+          // A jump greater than 2s indicates a manual seek/skip inside the player
+          if (delta > 2.0) {
             lastReportedHostTime.current = currentTime
             onHostSeek?.(currentTime)
           } else {
@@ -120,12 +119,26 @@ export default function VideoPlayer({
             progress: 100,
           })
         }
+      } else if (!isSoloMode) {
+        // Continuous sync correction for viewer
+        if (streamEvent === "play" && !is_playing) {
+          // If host is paused, force viewer pause
+          sendToIframe({ command: "pause" })
+        } else if (streamEvent === "pause" && is_playing) {
+          // If host is playing, force viewer play
+          sendToIframe({ command: "play" })
+        }
+
+        const drift = Math.abs(currentTime - time)
+        if (drift > 2.5 && time > 0) {
+          sendToIframe({ command: "seek", time })
+        }
       }
     }
 
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [isHost, onHostPlay, onHostPause, onHostSeek, onPlayerEvent])
+  }, [isHost, isSoloMode, is_playing, time, onHostPlay, onHostPause, onHostSeek, onPlayerEvent, sendToIframe])
 
   // Synchronize viewer iframe with host playback state when NOT in Solo Mode
   useEffect(() => {
