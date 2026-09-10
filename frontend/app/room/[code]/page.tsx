@@ -31,7 +31,6 @@ import {
 } from "@/lib/api"
 import { loadRoomMeta, saveRoomMeta, type RoomMeta } from "@/lib/storage"
 import VideoPlayer from "@/components/VideoPlayer"
-import PlaybackControls from "@/components/PlaybackControls"
 import Chat from "@/components/Chat"
 import ParticipantList from "@/components/ParticipantList"
 import Player from "@/components/Player"
@@ -65,8 +64,8 @@ export default function RoomPage() {
   } | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [independentUsers, setIndependentUsers] = useState<string[]>([])
-  const [independentPlayback, setIndependentPlayback] = useState(false)
-  const independentPlaybackRef = useRef(false)
+  const [mutedUsers, setMutedUsers] = useState<string[]>([])
+  const [isSoloMode, setIsSoloMode] = useState(false)
 
   const playbackTime = useRoomStore((s) => s.playback.time)
   const playbackState = useRoomStore((s) => s.playback)
@@ -77,6 +76,10 @@ export default function RoomPage() {
   const isHost = roomDetail?.is_host || roomMeta?.is_host || false
   const roomId = roomDetail?.room_id || roomMeta?.room_id || ""
   const pendingApproval = roomMeta?.status === "PENDING"
+
+  const isSoloModeRef = useRef(isSoloMode)
+  isSoloModeRef.current = isSoloMode
+  const canUseSoloMode = isHost || (user ? independentUsers.includes(user.id) : false)
 
   useEffect(() => {
     hydrate()
@@ -143,7 +146,7 @@ export default function RoomPage() {
           break
 
         case "PLAYBACK_STATE":
-          if (independentPlaybackRef.current && !isHost) break
+          if (isSoloModeRef.current && !isHost) break
           store.setPlayback({
             time: event.time,
             is_playing: event.is_playing,
@@ -201,10 +204,29 @@ export default function RoomPage() {
               ? Array.from(new Set([...previous, event.user_id]))
               : previous.filter((id) => id !== event.user_id)
           )
-          if (user?.id === event.user_id) {
-            independentPlaybackRef.current = event.enabled
-            setIndependentPlayback(event.enabled)
+          if (!event.enabled && user?.id === event.user_id) {
+            setIsSoloMode(false)
           }
+          break
+
+        case "USER_MUTED":
+          setMutedUsers((previous) => Array.from(new Set([...previous, event.user_id])))
+          break
+
+        case "USER_UNMUTED":
+          setMutedUsers((previous) => previous.filter((id) => id !== event.user_id))
+          break
+
+        case "USER_BANNED":
+          if (user?.id === event.user_id) {
+            router.push("/")
+          } else {
+            void loadParticipants()
+          }
+          break
+
+        case "USER_UNBANNED":
+          void loadParticipants()
           break
 
         case "ERROR":
@@ -260,6 +282,10 @@ export default function RoomPage() {
     try {
       const data = await getRoomParticipants(roomId, token)
       setParticipants(data)
+      const muted = data.filter((p) => p.is_muted).map((p) => p.id)
+      setMutedUsers(muted)
+      const indep = data.filter((p) => p.is_independent).map((p) => p.id)
+      setIndependentUsers(indep)
     } catch (error) {
       setSystemMessages((prev) => [...prev, getErrorMessage(error)])
     } finally {
@@ -278,23 +304,19 @@ export default function RoomPage() {
     return () => clearInterval(timer)
   }, [isHost, roomId, token, loadParticipants])
 
-  const handlePlay = () => {
-    sendMessage({ type: "PLAY", time: playbackTime })
+  const handlePlay = (time?: number) => {
+    const targetTime = typeof time === "number" ? time : playbackTime
+    sendMessage({ type: "PLAY", time: targetTime })
   }
 
-  const handlePause = () => {
-    sendMessage({ type: "PAUSE", time: playbackTime })
+  const handlePause = (time?: number) => {
+    const targetTime = typeof time === "number" ? time : playbackTime
+    sendMessage({ type: "PAUSE", time: targetTime })
   }
 
   const handleSeek = (time: number) => {
     sendMessage({ type: "SEEK", time })
   }
-
-  const handleSync = () => {
-    sendMessage({ type: "SYNC_CHECK", client_time: playbackTime })
-  }
-
-  const canControlPlayback = isHost || independentPlayback
 
   const handleRoomSettings = async (changes: {
     is_private?: boolean
@@ -524,26 +546,57 @@ export default function RoomPage() {
                       mediaType={roomDetail?.video_media_type ?? "movie"}
                       season={roomDetail?.video_season}
                       episode={roomDetail?.video_episode}
+                      isHost={isHost}
+                      isSoloMode={isSoloMode}
+                      onHostPlay={handlePlay}
+                      onHostPause={handlePause}
+                      onHostSeek={handleSeek}
+                      onPlayerEvent={handlePlayerEvent}
                     />
                   )}
                 </div>
               </div>
 
-              <div className="mt-4">
-                {canControlPlayback ? (
-                  <PlaybackControls
-                    onPlay={handlePlay}
-                    onPause={handlePause}
-                    onSeek={handleSeek}
-                    onSync={handleSync}
-                    currentTime={playbackState.time}
-                    isPlaying={playbackState.is_playing}
-                  />
-                ) : (
-                  <div className="text-xs text-[color:var(--color-muted)]">
-                    Playback controlled by host. Current time {playbackState.time.toFixed(1)}s
-                  </div>
-                )}
+              <div className="control-deck mt-4 flex flex-wrap items-center justify-between gap-3 p-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`badge ${
+                      isSoloMode
+                        ? "border-amber-500/30 bg-amber-500/20 text-amber-300"
+                        : "badge-muted"
+                    }`}
+                  >
+                    {isHost
+                      ? "👑 Host Broadcast"
+                      : isSoloMode
+                        ? "🚀 Solo Mode Active"
+                        : "🔗 Synced with Host"}
+                  </span>
+                  <span className="text-[color:var(--color-muted)]">
+                    {isHost
+                      ? "Automatic viewer sync active"
+                      : isSoloMode
+                        ? "Watching independently from host"
+                        : `${playbackState.is_playing ? "Playing" : "Paused"} @ ${playbackState.time.toFixed(1)}s`}
+                  </span>
+                </div>
+
+                {!isHost ? (
+                  canUseSoloMode ? (
+                    <button
+                      onClick={() => setIsSoloMode(!isSoloMode)}
+                      className={`btn ${
+                        isSoloMode ? "btn-primary" : "btn-outline"
+                      } text-xs`}
+                    >
+                      {isSoloMode ? "🔗 Re-sync with Host" : "🚀 Switch to Solo Mode"}
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-[color:var(--color-muted)]">
+                      🔒 Synced with host
+                    </span>
+                  )
+                ) : null}
               </div>
 
               {resumeInfo ? (
@@ -704,85 +757,134 @@ export default function RoomPage() {
                     No participant data available yet.
                   </p>
                 ) : (
-                  <div className="mt-3 space-y-3">
-                    {participants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className="border border-white/10 bg-white/5 p-3"
-                      >
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-semibold">
-                            {participant.display_name}
-                          </span>
-                          <span className="text-xs text-[color:var(--color-muted)]">
-                            {participant.status}
-                          </span>
-                        </div>
-                        {participant.status === "PENDING" ? (
-                          <button
-                            onClick={() => handleApprove(participant.id)}
-                            className="btn btn-primary mt-3"
+                  <>
+                    <div className="mt-3 space-y-3">
+                      {participants
+                        .filter((p) => !p.is_banned)
+                        .map((participant) => (
+                          <div
+                            key={participant.id}
+                            className="border border-white/10 bg-white/5 p-3"
                           >
-                            Approve
-                          </button>
-                        ) : participant.is_host ? (
-                          <p className="mt-3 text-xs text-[color:var(--color-muted)]">
-                            Host controls
-                          </p>
-                        ) : (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button
-                              onClick={() =>
-                                sendMessage({
-                                  type: "SET_INDEPENDENT_PLAYBACK",
-                                  user_id: participant.id,
-                                  enabled: !independentUsers.includes(participant.id),
-                                })
-                              }
-                              className="btn btn-ghost"
-                            >
-                              {independentUsers.includes(participant.id)
-                                ? "Follow host"
-                                : "Allow independent"}
-                            </button>
-                            <button
-                              onClick={() =>
-                                sendMessage({
-                                  type: "MUTE_USER",
-                                  user_id: participant.id,
-                                })
-                              }
-                              className="btn btn-ghost"
-                            >
-                              Mute
-                            </button>
-                            <button
-                              onClick={() =>
-                                sendMessage({
-                                  type: "KICK_USER",
-                                  user_id: participant.id,
-                                })
-                              }
-                              className="btn btn-outline"
-                            >
-                              Kick
-                            </button>
-                            <button
-                              onClick={() =>
-                                sendMessage({
-                                  type: "BAN_USER",
-                                  user_id: participant.id,
-                                })
-                              }
-                              className="btn btn-outline"
-                            >
-                              Ban
-                            </button>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-semibold">
+                                {participant.display_name}
+                              </span>
+                              <span className="text-xs text-[color:var(--color-muted)]">
+                                {participant.status}
+                              </span>
+                            </div>
+                            {participant.status === "PENDING" ? (
+                              <button
+                                onClick={() => handleApprove(participant.id)}
+                                className="btn btn-primary mt-3"
+                              >
+                                Approve
+                              </button>
+                            ) : participant.is_host ? (
+                              <p className="mt-3 text-xs text-[color:var(--color-muted)]">
+                                Host controls
+                              </p>
+                            ) : (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button
+                                  onClick={() =>
+                                    sendMessage({
+                                      type: "SET_INDEPENDENT_PLAYBACK",
+                                      user_id: participant.id,
+                                      enabled: !independentUsers.includes(participant.id),
+                                    })
+                                  }
+                                  className="btn btn-ghost text-xs"
+                                >
+                                  {independentUsers.includes(participant.id)
+                                    ? "Revoke Solo Mode"
+                                    : "Allow Solo Mode"}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    sendMessage({
+                                      type: mutedUsers.includes(participant.id)
+                                        ? "UNMUTE_USER"
+                                        : "MUTE_USER",
+                                      user_id: participant.id,
+                                    })
+                                  }
+                                  className={`btn ${
+                                    mutedUsers.includes(participant.id)
+                                      ? "btn-outline text-amber-400"
+                                      : "btn-ghost"
+                                  } text-xs`}
+                                >
+                                  {mutedUsers.includes(participant.id)
+                                    ? "Unmute"
+                                    : "Mute"}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    sendMessage({
+                                      type: "KICK_USER",
+                                      user_id: participant.id,
+                                    })
+                                  }
+                                  className="btn btn-outline text-xs"
+                                >
+                                  Kick
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    sendMessage({
+                                      type: "BAN_USER",
+                                      user_id: participant.id,
+                                    })
+                                  }
+                                  className="btn btn-outline text-xs text-red-400"
+                                >
+                                  Ban
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 border-t border-white/10 pt-4">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted)]">
+                        Banned Users ({participants.filter((p) => p.is_banned).length})
+                      </h3>
+                      {participants.filter((p) => p.is_banned).length === 0 ? (
+                        <p className="mt-2 text-xs text-[color:var(--color-muted)]">
+                          No banned users.
+                        </p>
+                      ) : (
+                        <div className="mt-2 space-y-2">
+                          {participants
+                            .filter((p) => p.is_banned)
+                            .map((banned) => (
+                              <div
+                                key={banned.id}
+                                className="flex items-center justify-between border border-red-500/20 bg-red-500/5 p-2.5 text-xs"
+                              >
+                                <span className="font-medium text-white">
+                                  {banned.display_name}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    sendMessage({
+                                      type: "UNBAN_USER",
+                                      user_id: banned.id,
+                                    })
+                                  }
+                                  className="btn btn-outline text-xs"
+                                >
+                                  Unban
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </section>
             ) : null}

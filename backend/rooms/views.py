@@ -18,6 +18,12 @@ from common.redis_keys import (
     room_host_status_key,
     room_viewers_key,
 )
+from common.redis_room_state import (
+    is_user_banned,
+    get_banned_users,
+    get_muted_users,
+    get_independent_users,
+)
 from providers.registry import get_provider
 from .serializers import WatchProgressSerializer
 from .services import create_room, join_room
@@ -101,6 +107,9 @@ def join_room_view(request):
     if not room_code:
         return Response({"error": "Room code required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    if async_to_sync(is_user_banned)(room_code, request.user.id):
+        return Response({"error": "You are banned from this room"}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         participant, room = join_room(
             room_code=room_code,
@@ -156,6 +165,9 @@ def room_detail_view(request, room_code):
     except Room.DoesNotExist:
         return Response({"error": "Room not found"}, status=404)
 
+    if async_to_sync(is_user_banned)(room.code, request.user.id):
+        return Response({"error": "You are banned from this room"}, status=403)
+
     is_participant = RoomParticipant.objects.filter(
         room=room,
         user=request.user,
@@ -203,15 +215,42 @@ def room_participants_view(request):
         .select_related("user")
     )
 
+    banned_ids = set(async_to_sync(get_banned_users)(room.code))
+    muted_ids = set(async_to_sync(get_muted_users)(room.code))
+    independent_ids = set(async_to_sync(get_independent_users)(room.code))
+
     payload = []
+    seen_user_ids = set()
     for participant in participants:
+        uid_str = str(participant.user_id)
+        seen_user_ids.add(uid_str)
         payload.append({
-            "id": str(participant.user_id),
+            "id": uid_str,
             "display_name": participant.user.display_name,
             "status": participant.status,
             "is_host": participant.user_id == room.host_id,
             "is_guest": participant.user.is_guest,
+            "is_banned": uid_str in banned_ids,
+            "is_muted": uid_str in muted_ids,
+            "is_independent": uid_str in independent_ids,
         })
+
+    missing_banned_ids = banned_ids - seen_user_ids
+    if missing_banned_ids:
+        from users.models import User
+        missing_users = User.objects.filter(id__in=missing_banned_ids)
+        for u in missing_users:
+            uid_str = str(u.id)
+            payload.append({
+                "id": uid_str,
+                "display_name": u.display_name,
+                "status": "BANNED",
+                "is_host": False,
+                "is_guest": u.is_guest,
+                "is_banned": True,
+                "is_muted": uid_str in muted_ids,
+                "is_independent": uid_str in independent_ids,
+            })
 
     return Response(payload)
 
@@ -443,6 +482,9 @@ def public_rooms_view(request):
         response = []
 
         for room in rooms_list:
+            if request.user.is_authenticated and await is_user_banned(room.code, request.user.id):
+                continue
+
             host_status = await client.get(room_host_status_key(room.code))
             if not host_status:
                 continue

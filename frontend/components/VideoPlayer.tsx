@@ -1,7 +1,22 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useCallback } from "react"
 import { useRoomStore } from "@/store/roomStore"
+import type { PlayerEventData } from "@/lib/websocket"
+
+interface VideoPlayerProps {
+  provider: string
+  videoId: string
+  mediaType?: "movie" | "tv"
+  season?: number | null
+  episode?: number | null
+  isHost?: boolean
+  isSoloMode?: boolean
+  onHostPlay?: (time: number) => void
+  onHostPause?: (time: number) => void
+  onHostSeek?: (time: number) => void
+  onPlayerEvent?: (data: PlayerEventData) => void
+}
 
 export default function VideoPlayer({
   provider,
@@ -9,15 +24,21 @@ export default function VideoPlayer({
   mediaType = "movie",
   season,
   episode,
-}: {
-  provider: string
-  videoId: string
-  mediaType?: "movie" | "tv"
-  season?: number | null
-  episode?: number | null
-}) {
+  isHost = false,
+  isSoloMode = false,
+  onHostPlay,
+  onHostPause,
+  onHostSeek,
+  onPlayerEvent,
+}: VideoPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const { is_playing, time } = useRoomStore((s) => s.playback)
+  const { is_playing, time, version } = useRoomStore((s) => s.playback)
+
+  const localTimeRef = useRef(0)
+  const lastReportedHostTime = useRef(0)
+  const lastProgressReportRef = useRef(0)
+  const prevSoloModeRef = useRef(isSoloMode)
+  const iframeReadyRef = useRef(false)
 
   const src = useMemo(() => {
     if (!provider || !videoId) return ""
@@ -34,22 +55,114 @@ export default function VideoPlayer({
     return ""
   }, [provider, videoId, mediaType, season, episode])
 
-  useEffect(() => {
-    const iframe = iframeRef.current
-    if (!iframe) return
+  const sendToIframe = useCallback(
+    (message: { command: "play" | "pause" } | { command: "seek"; time: number }) => {
+      const iframe = iframeRef.current
+      if (!iframe?.contentWindow) return
 
-    iframe.contentWindow?.postMessage(
-      {
-        type: is_playing ? "STREAMIT_PLAY" : "STREAMIT_PAUSE",
-        time,
-      },
-      "https://watch.embed-api.stream"
-    )
-    iframe.contentWindow?.postMessage(
-      { type: "STREAMIT_SEEK", time },
-      "https://watch.embed-api.stream"
-    )
-  }, [is_playing, time])
+      iframe.contentWindow.postMessage(
+        {
+          source: "streamframe-parent",
+          ...message,
+        },
+        "https://watch.embed-api.stream"
+      )
+    },
+    []
+  )
+
+  // Listen for streamframe events emitted from inside the Embed API iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== "https://watch.embed-api.stream") return
+      if (event.source !== iframeRef.current?.contentWindow) return
+      if (event.data?.source !== "streamframe") return
+
+      iframeReadyRef.current = true
+      const { event: streamEvent, currentTime = 0, duration = 0 } = event.data
+      localTimeRef.current = currentTime
+
+      if (isHost) {
+        if (streamEvent === "play") {
+          lastReportedHostTime.current = currentTime
+          onHostPlay?.(currentTime)
+        } else if (streamEvent === "pause") {
+          lastReportedHostTime.current = currentTime
+          onHostPause?.(currentTime)
+        } else if (streamEvent === "timeupdate") {
+          const delta = Math.abs(currentTime - lastReportedHostTime.current)
+          // A jump greater than 2.5s indicates a manual seek/skip inside the player
+          if (delta > 2.5) {
+            lastReportedHostTime.current = currentTime
+            onHostSeek?.(currentTime)
+          } else {
+            lastReportedHostTime.current = currentTime
+          }
+
+          // Throttle progress telemetry reporting to every ~5s
+          if (Math.abs(currentTime - lastProgressReportRef.current) >= 5) {
+            lastProgressReportRef.current = currentTime
+            const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 1
+            const progress = Math.min(100, Math.max(0, (currentTime / safeDuration) * 100))
+            onPlayerEvent?.({
+              event: "timeupdate",
+              currentTime,
+              duration: safeDuration,
+              progress,
+            })
+          }
+        } else if (streamEvent === "ended") {
+          const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 1
+          onPlayerEvent?.({
+            event: "ended",
+            currentTime: safeDuration,
+            duration: safeDuration,
+            progress: 100,
+          })
+        }
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [isHost, onHostPlay, onHostPause, onHostSeek, onPlayerEvent])
+
+  // Synchronize viewer iframe with host playback state when NOT in Solo Mode
+  useEffect(() => {
+    if (isHost || isSoloMode) return
+
+    // Apply play/pause state
+    sendToIframe({ command: is_playing ? "play" : "pause" })
+
+    // If drift is significant or version changed (explicit seek from host), seek viewer player
+    const drift = Math.abs(localTimeRef.current - time)
+    if (drift > 2) {
+      localTimeRef.current = time
+      sendToIframe({ command: "seek", time })
+    }
+  }, [isHost, isSoloMode, is_playing, time, version, sendToIframe])
+
+  // When switching from Solo Mode back to Synced Mode, instantly re-align to host
+  useEffect(() => {
+    if (!isHost && prevSoloModeRef.current && !isSoloMode) {
+      sendToIframe({ command: "seek", time })
+      sendToIframe({ command: is_playing ? "play" : "pause" })
+    }
+    prevSoloModeRef.current = isSoloMode
+  }, [isHost, isSoloMode, time, is_playing, sendToIframe])
+
+  // Align newly loaded iframe with active playback state for late joiners
+  const handleIframeLoad = () => {
+    iframeReadyRef.current = true
+    if (!isHost && !isSoloMode && time > 0) {
+      setTimeout(() => {
+        sendToIframe({ command: "seek", time })
+        if (is_playing) {
+          sendToIframe({ command: "play" })
+        }
+      }, 1000)
+    }
+  }
 
   if (!src) {
     return (
@@ -64,6 +177,7 @@ export default function VideoPlayer({
       <iframe
         ref={iframeRef}
         src={src}
+        onLoad={handleIframeLoad}
         width="100%"
         height="100%"
         allowFullScreen

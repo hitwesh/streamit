@@ -93,9 +93,12 @@ export type RoomDetail = {
 export type ParticipantRecord = {
   id: string
   display_name: string
-  status: "PENDING" | "APPROVED"
+  status: "PENDING" | "APPROVED" | "BANNED"
   is_host: boolean
   is_guest: boolean
+  is_muted?: boolean
+  is_banned?: boolean
+  is_independent?: boolean
 }
 
 type RequestOptions = {

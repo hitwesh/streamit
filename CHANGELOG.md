@@ -5,6 +5,23 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Automated Playback Sync, Solo Mode, Banned List & Host Unmute (STABLE)
+
+### Change
+- **Automated Video Synchronization**: Integrated Embed API's native `streamframe` postMessage event bridge. The player now automatically listens to host interactions (`play`, `pause`, `timeupdate`, `ended`) directly inside the iframe and emits synchronized WebSocket playback commands (`PLAY`, `PAUSE`, `SEEK`). Manual playback control buttons (`PlaybackControls.tsx`) have been removed in favor of direct, automatic in-player sync.
+- **Solo Mode (Overhauled Independent Playback)**: Introduced professional "Solo Mode". The room host controls permission per participant in the moderation panel. Permitted viewers can toggle between "Synced with Host" and "Solo Mode" (watching independently at their own pace) with a single click.
+
+### Moderation
+- **Banned Streams Hidden on Main Page**: `public_rooms_view` now checks if the authenticated user is banned from each room in Redis. Banned users cannot view or discover streams they were banned from on the main page.
+- **Dedicated Banned List & Unban Control**: Host moderation panel now features a dedicated "Banned Users" section showing all banned users with an `[ Unban ]` button. Unbanning immediately clears the ban in Redis, broadcasts the update, and restores the user's room access.
+- **Host Unmute Control**: Added full support for unmuting users across WebSocket events (`UNMUTE_USER`, `USER_UNMUTED`) and an interactive Mute/Unmute toggle in the host moderation deck.
+
+### Validation
+- Frontend Next.js production build passes with zero TypeScript errors.
+- Backend Django test suite passes.
+
+---
+
 ## 2026-09-10 - Comprehensive Bug Fix Sweep (STABLE)
 
 ### Fix

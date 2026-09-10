@@ -213,6 +213,29 @@ async def is_user_banned(room_code: str, user_id: str) -> bool:
     )
 
 
+async def unban_user(room_code: str, user_id: str):
+    client = get_redis_client()
+    await client.srem(room_banned_users_key(room_code), str(user_id))
+
+
+async def get_banned_users(room_code: str) -> list[str]:
+    client = get_redis_client()
+    members = await client.smembers(room_banned_users_key(room_code))
+    return [m.decode() if isinstance(m, bytes) else str(m) for m in members]
+
+
+async def get_muted_users(room_code: str) -> list[str]:
+    client = get_redis_client()
+    members = await client.smembers(room_muted_users_key(room_code))
+    return [m.decode() if isinstance(m, bytes) else str(m) for m in members]
+
+
+async def get_independent_users(room_code: str) -> list[str]:
+    client = get_redis_client()
+    members = await client.smembers(room_independent_users_key(room_code))
+    return [m.decode() if isinstance(m, bytes) else str(m) for m in members]
+
+
 async def kick_user(room_code: str, user_id: str):
     client = get_redis_client()
     await client.sadd(room_kicked_users_key(room_code), str(user_id))

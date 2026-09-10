@@ -19,7 +19,9 @@ export type ClientEvent =
   | { type: "SYNC_CHECK"; client_time: number }
   // Moderation — host only
   | { type: "MUTE_USER"; user_id: string }
+  | { type: "UNMUTE_USER"; user_id: string }
   | { type: "BAN_USER"; user_id: string }
+  | { type: "UNBAN_USER"; user_id: string }
   | { type: "KICK_USER"; user_id: string }
   | { type: "SET_INDEPENDENT_PLAYBACK"; user_id: string; enabled: boolean }
 
@@ -41,6 +43,10 @@ export type ServerEvent =
   | { type: "ROOM_DELETED" }
   | { type: "ROOM_SETTINGS"; is_private: boolean; entry_mode: string | null; is_chat_enabled: boolean }
   | { type: "INDEPENDENT_PLAYBACK"; user_id: string; enabled: boolean }
+  | { type: "USER_MUTED"; user_id: string }
+  | { type: "USER_UNMUTED"; user_id: string }
+  | { type: "USER_BANNED"; user_id: string }
+  | { type: "USER_UNBANNED"; user_id: string }
   | { type: "SYNC_CORRECTION"; time: number; version: number }
   | { type: "ERROR"; message: string; code?: string }
 

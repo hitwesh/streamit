@@ -24,8 +24,10 @@ from common.redis_room_state import (
     is_duplicate_message,
     is_user_banned,
     mute_user,
+    unmute_user,
     is_user_muted,
     ban_user,
+    unban_user,
     kick_user,
     is_user_kicked,
     set_independent_playback,
@@ -372,6 +374,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "version": state["version"],
         }))
 
+        if await is_independent_playback(self.room_data["code"], self.user.id):
+            await self.send(text_data=json.dumps({
+                "type": "INDEPENDENT_PLAYBACK",
+                "user_id": str(self.user.id),
+                "enabled": True,
+            }))
+
         # 5️⃣ Notify presence
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -493,7 +502,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             return
 
         # ---------------- MODERATION (HOST ONLY) ----------------
-        if event_type in {"MUTE_USER", "BAN_USER", "KICK_USER"}:
+        if event_type in {"MUTE_USER", "UNMUTE_USER", "BAN_USER", "UNBAN_USER", "KICK_USER"}:
             if not PermissionService.can_moderate(self.user, self.room_data):
                 await self.send(text_data=json.dumps({
                     "type": "ERROR",
@@ -508,16 +517,49 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
             if event_type == "MUTE_USER":
                 await mute_user(self.room_data["code"], target_user_id)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_muted",
+                        "user_id": str(target_user_id),
+                    },
+                )
+
+            if event_type == "UNMUTE_USER":
+                await unmute_user(self.room_data["code"], target_user_id)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_unmuted",
+                        "user_id": str(target_user_id),
+                    },
+                )
 
             if event_type == "BAN_USER":
                 await ban_user(self.room_data["code"], target_user_id)
-
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         "type": "force_disconnect",
                         "user_id": str(target_user_id),
-                    }
+                    },
+                )
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_banned",
+                        "user_id": str(target_user_id),
+                    },
+                )
+
+            if event_type == "UNBAN_USER":
+                await unban_user(self.room_data["code"], target_user_id)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_unbanned",
+                        "user_id": str(target_user_id),
+                    },
                 )
 
             if event_type == "KICK_USER":
@@ -527,7 +569,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                     {
                         "type": "force_disconnect",
                         "user_id": str(target_user_id),
-                    }
+                    },
                 )
 
             return
@@ -690,6 +732,30 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "type": "INDEPENDENT_PLAYBACK",
             "user_id": event["user_id"],
             "enabled": event["enabled"],
+        }))
+
+    async def user_muted(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "USER_MUTED",
+            "user_id": event["user_id"],
+        }))
+
+    async def user_unmuted(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "USER_UNMUTED",
+            "user_id": event["user_id"],
+        }))
+
+    async def user_banned(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "USER_BANNED",
+            "user_id": event["user_id"],
+        }))
+
+    async def user_unbanned(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "USER_UNBANNED",
+            "user_id": event["user_id"],
         }))
 
     async def force_disconnect(self, event):
