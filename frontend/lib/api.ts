@@ -1,6 +1,6 @@
 import { loadSession, saveSession } from "@/lib/storage"
 
-const DEFAULT_API_BASE_URL = "http://localhost:8000"
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000"
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "")

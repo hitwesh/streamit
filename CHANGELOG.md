@@ -5,6 +5,18 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Local Frontend API Address (STABLE)
+
+### Fix
+- Defaulted frontend REST and WebSocket URLs to `127.0.0.1` to match the local Django server bind address.
+- Verified authenticated requests from the frontend origin receive the expected CORS headers.
+
+### Validation
+- Frontend lint and production build pass.
+- Live frontend-origin login request returned HTTP 200.
+
+---
+
 ## 2026-09-10 - Sign-in Native Navigation Guard (STABLE)
 
 ### Fix

@@ -6,12 +6,12 @@ StreamIt expects the Django backend to run on `http://localhost:8000` by default
 You can override this in a `.env.local` file:
 
 ```
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-NEXT_PUBLIC_WS_BASE_URL=ws://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_WS_BASE_URL=ws://127.0.0.1:8000
 NEXT_PUBLIC_DEMO_STREAM_URL=
 ```
 
-- `NEXT_PUBLIC_API_BASE_URL` controls REST calls.
+- `NEXT_PUBLIC_API_BASE_URL` controls REST calls. The default is `http://127.0.0.1:8000`.
 - `NEXT_PUBLIC_WS_BASE_URL` controls WebSocket connections.
 - `NEXT_PUBLIC_DEMO_STREAM_URL` enables the demo ReactPlayer when set.
 
