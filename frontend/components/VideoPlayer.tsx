@@ -52,6 +52,15 @@ export default function VideoPlayer({
       return `https://watch.embed-api.stream/embed/movie/${videoId}`
     }
 
+    if (provider === "superembed") {
+      const base = `https://multiembed.mov/?video_id=${videoId}&tmdb=1`
+      if (mediaType === "tv") {
+        if (!season || !episode) return ""
+        return `${base}&s=${season}&e=${episode}`
+      }
+      return base
+    }
+
     return ""
   }, [provider, videoId, mediaType, season, episode])
 

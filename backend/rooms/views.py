@@ -626,7 +626,7 @@ def search_content(request):
         return Response({"error": "page must be >= 1"}, status=400)
 
     async def fetch_results():
-        provider = get_provider("embed-api")
+        provider = get_provider("superembed")
         cache_key = f"search:{provider.name}:{query}:{page}"
         client = get_redis_client()
 

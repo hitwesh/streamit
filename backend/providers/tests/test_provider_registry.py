@@ -9,6 +9,11 @@ class ProviderRegistryTests(TestCase):
         self.assertIsNotNone(provider)
         self.assertEqual(provider.name, "embed-api")
 
+    def test_superembed_provider_exists(self):
+        provider = get_provider("superembed")
+        self.assertIsNotNone(provider)
+        self.assertEqual(provider.name, "superembed")
+
     def test_unknown_provider_raises(self):
         with self.assertRaises(ValueError):
             get_provider("unknown")
