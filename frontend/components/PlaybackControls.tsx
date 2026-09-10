@@ -25,7 +25,7 @@ export default function PlaybackControls({
   }, [safeTime])
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="control-deck flex flex-wrap items-center gap-3 p-3">
       <button onClick={onPlay} className="btn btn-primary">
         Play
       </button>
@@ -33,7 +33,9 @@ export default function PlaybackControls({
         Pause
       </button>
       <div className="flex items-center gap-2">
-        <input
+        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[color:var(--color-muted)]">
+          Seek to
+          <input
           type="number"
           min={0}
           step={1}
@@ -42,8 +44,9 @@ export default function PlaybackControls({
           onKeyDown={(event) => {
             if (event.key === "Enter") onSeek(Math.max(0, seekValue))
           }}
-          className="input w-28"
-        />
+            className="input w-24"
+          />
+        </label>
         <button
           onClick={() => onSeek(Math.max(0, seekValue))}
           className="btn btn-ghost"

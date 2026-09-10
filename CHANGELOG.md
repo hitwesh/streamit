@@ -19,6 +19,18 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Room Experience Visual Polish (STABLE)
+
+### UI
+- Added a cinematic room surface with layered lighting, stronger player framing, and a refined control deck.
+- Improved status pills, spacing, borders, and responsive player/control presentation.
+- Preserved existing room behavior and responsive layout.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Persistent Moderation and Independent Playback (STABLE)
 
 ### Fix

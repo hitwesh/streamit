@@ -436,7 +436,7 @@ export default function RoomPage() {
   const streamTitle = roomDetail?.video_id ? "Live watch party" : `Room ${roomCode}`
 
   return (
-    <div className="min-h-screen">
+    <div className="room-shell min-h-screen">
       <header className="sticky top-0 z-40 border-b border-white/5 bg-black/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-6">
@@ -452,7 +452,7 @@ export default function RoomPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs">
-            <span className="badge badge-muted">
+            <span className="stat-pill">
               {viewerCount} {viewerCount === 1 ? "viewer" : "viewers"}
             </span>
             <Link href="/" className="btn btn-outline">
@@ -503,8 +503,8 @@ export default function RoomPage() {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="flex flex-col gap-6">
-            <div className="panel p-4">
-              <div className="relative overflow-hidden border border-white/10 bg-black">
+            <div className="panel p-3 sm:p-4">
+              <div className="player-frame">
                 <div className="absolute left-3 top-3 flex items-center gap-2 text-xs">
                   <span className="badge">Live</span>
                   <span className="badge badge-muted">
@@ -556,7 +556,7 @@ export default function RoomPage() {
               ) : null}
             </div>
 
-            <div className="panel-soft p-5">
+            <div className="panel-soft p-5 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
@@ -655,7 +655,7 @@ export default function RoomPage() {
           </section>
 
           <aside className="flex flex-col gap-6">
-            <section className="panel flex h-[480px] flex-col">
+            <section className="panel flex h-[480px] flex-col border-white/12">
               <div className="border-b border-white/10 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold">Live chat</h2>
