@@ -5,6 +5,20 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Embed API Sandbox Compatibility (STABLE)
+
+### Fix
+- Removed the iframe `sandbox` attribute because Embed API rejects sandboxed frames and refuses to load playback.
+- Kept the Embed API frame-origin CSP restriction and `no-referrer` policy.
+
+### Limitation
+- Because Embed API requires an unsandboxed iframe, StreamIt cannot guarantee that provider-owned clicks never open redirects or advertising. A provider that supports sandboxing or a self-hosted player is required for that guarantee.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - CSP Backend Connection Fix (STABLE)
 
 ### Fix
