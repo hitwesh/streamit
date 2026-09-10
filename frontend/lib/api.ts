@@ -170,8 +170,6 @@ async function request<T>(
     : await response.text()
 
   if (!response.ok) {
-    if (response.status === 401 && options.token && !hasRetried) {
-      const refreshedToken = await refreshAccessToken()
     if (response.status === 401 && activeToken && !hasRetried) {
       const refreshedToken = await refreshAccessTokenOnce()
       if (refreshedToken) {

@@ -324,8 +324,6 @@ def delete_room_view(request):
     if room.host != request.user:
         return Response({"error": "Only host can delete room"}, status=403)
 
-    room.is_active = False
-    room.save(update_fields=["is_active"])
     room.mark_deleted()
 
     channel_layer = get_channel_layer()

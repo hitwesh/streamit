@@ -99,7 +99,6 @@ export default function RoomPage() {
         if (!active) return
         setRoomDetail(detail)
 
-        if (!roomMeta) {
         if (!roomMetaRef.current) {
           const meta: RoomMeta = {
             room_id: detail.room_id,
@@ -119,7 +118,6 @@ export default function RoomPage() {
     return () => {
       active = false
     }
-  }, [roomCode, token, roomMeta])
   }, [roomCode, token])
 
   useEffect(() => {

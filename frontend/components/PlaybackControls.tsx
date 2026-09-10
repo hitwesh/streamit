@@ -22,8 +22,6 @@ export default function PlaybackControls({
   const [seekFocused, setSeekFocused] = useState(false)
 
   useEffect(() => {
-    setSeekValue(Math.round(safeTime))
-  }, [safeTime])
     if (!seekFocused) {
       setSeekValue(Math.round(safeTime))
     }

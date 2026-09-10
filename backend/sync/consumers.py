@@ -160,9 +160,6 @@ def update_host_watch_progress_by_room_id(room_id, user, time):
         user=user,
         room=room,
         media_id=room.video_id,
-        media_type=room.video_provider,
-        season=None,
-        episode=None,
         media_type=room.video_media_type,
         season=room.video_season,
         episode=room.video_episode,
@@ -193,9 +190,6 @@ def update_watch_progress_by_room_id(
         user=user,
         room=room,
         media_id=room.video_id,
-        media_type=room.video_provider,
-        season=None,
-        episode=None,
         media_type=room.video_media_type,
         season=room.video_season,
         episode=room.video_episode,
@@ -448,7 +442,6 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            if not self.room_data["is_chat_enabled"]:
             chat_enabled = await get_chat_enabled_by_room_id(self.room_data["id"])
             if not chat_enabled:
                 await self.send_error("Chat is disabled in this room")
@@ -575,7 +568,6 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            is_playing = event_type == "PLAY"
             if event_type == "SEEK":
                 current_state = await get_playback_state_by_room_id(
                     self.room_data["id"]
