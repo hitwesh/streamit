@@ -22,13 +22,13 @@ export default function VideoPlayer({
   const src = useMemo(() => {
     if (!provider || !videoId) return ""
 
-    if (provider === "vidphantom") {
+    if (provider === "embed-api") {
       if (mediaType === "tv") {
         if (!season || !episode) return ""
-        return `https://vidphantom.com/tv/${videoId}/${season}/${episode}?autoplay=false&poster=true`
+        return `https://watch.embed-api.stream/embed/tv/${videoId}/${season}/${episode}`
       }
 
-      return `https://vidphantom.com/movie/${videoId}?autoplay=false&poster=true`
+      return `https://watch.embed-api.stream/embed/movie/${videoId}`
     }
 
     return ""
@@ -61,9 +61,6 @@ export default function VideoPlayer({
         height="100%"
         allowFullScreen
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-        sandbox="allow-presentation allow-same-origin allow-scripts"
-        referrerPolicy="no-referrer"
-        loading="lazy"
         frameBorder={0}
         title="StreamIt player"
       />

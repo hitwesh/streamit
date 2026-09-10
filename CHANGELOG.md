@@ -5,6 +5,19 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Restore Embed API Playback (STABLE)
+
+### Change
+- Restored Embed API as the active video provider.
+- Removed the VidPhantom-specific iframe URL and security policy changes.
+- Existing authentication, signup, and frontend connection fixes are unchanged.
+
+### Validation
+- Backend checks, migration check, and provider tests pass.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Local Frontend API Address (STABLE)
 
 ### Fix

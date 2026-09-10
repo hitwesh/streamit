@@ -1,20 +1,6 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; frame-src https://vidphantom.com; child-src https://vidphantom.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
-          },
-        ],
-      },
-    ]
-  },
   images: {
     remotePatterns: [
       {
