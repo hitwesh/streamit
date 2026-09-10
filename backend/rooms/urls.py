@@ -17,6 +17,7 @@ from .views import (
     get_progress_view,
     resume_progress_view,
 )
+from .player_proxy import player_proxy_view
 
 urlpatterns = [
     path("create/", create_room_view),
@@ -35,4 +36,5 @@ urlpatterns = [
     path("admin/rooms/<uuid:room_id>/chat/", admin_toggle_chat_view),
     path("admin/rooms/<uuid:room_id>/delete/", admin_delete_room_view),
     path("search/", search_content),
+    path("player/", player_proxy_view),
 ]
