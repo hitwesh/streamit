@@ -131,6 +131,11 @@ export default function LoginPage() {
             ) : null}
             <button
               type="submit"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                void handleLogin()
+              }}
               className="btn btn-primary w-full"
               disabled={loginLoading}
             >

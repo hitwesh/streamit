@@ -5,6 +5,17 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Sign-in Native Navigation Guard (STABLE)
+
+### Fix
+- Added an explicit click guard to prevent the browser's native form navigation from clearing entered credentials.
+- Sign-in continues through the React login request and preserves inline errors.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Sign-in Form Submission Fix (STABLE)
 
 ### Fix
