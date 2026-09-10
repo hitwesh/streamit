@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -64,6 +64,9 @@ export default function RoomPage() {
     completed: boolean
   } | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
+  const [independentUsers, setIndependentUsers] = useState<string[]>([])
+  const [independentPlayback, setIndependentPlayback] = useState(false)
+  const independentPlaybackRef = useRef(false)
 
   const playbackTime = useRoomStore((s) => s.playback.time)
   const playbackState = useRoomStore((s) => s.playback)
@@ -137,6 +140,7 @@ export default function RoomPage() {
           break
 
         case "PLAYBACK_STATE":
+          if (independentPlaybackRef.current && !isHost) break
           store.setPlayback({
             time: event.time,
             is_playing: event.is_playing,
@@ -188,6 +192,18 @@ export default function RoomPage() {
           } : previous)
           break
 
+        case "INDEPENDENT_PLAYBACK":
+          setIndependentUsers((previous) =>
+            event.enabled
+              ? Array.from(new Set([...previous, event.user_id]))
+              : previous.filter((id) => id !== event.user_id)
+          )
+          if (user?.id === event.user_id) {
+            independentPlaybackRef.current = event.enabled
+            setIndependentPlayback(event.enabled)
+          }
+          break
+
         case "ERROR":
           setSystemMessages((prev) => [...prev, event.message])
           break
@@ -213,7 +229,7 @@ export default function RoomPage() {
       disconnectSocket()
       resetRoom()
     }
-  }, [roomCode, token, pendingApproval, resetRoom, router])
+  }, [roomCode, token, pendingApproval, resetRoom, router, isHost, user?.id])
 
   useEffect(() => {
     if (connectionState !== "open") return
@@ -274,6 +290,8 @@ export default function RoomPage() {
   const handleSync = () => {
     sendMessage({ type: "SYNC_CHECK", client_time: playbackTime })
   }
+
+  const canControlPlayback = isHost || independentPlayback
 
   const handleRoomSettings = async (changes: {
     is_private?: boolean
@@ -509,7 +527,7 @@ export default function RoomPage() {
               </div>
 
               <div className="mt-4">
-                {isHost ? (
+                {canControlPlayback ? (
                   <PlaybackControls
                     onPlay={handlePlay}
                     onPause={handlePause}
@@ -710,6 +728,20 @@ export default function RoomPage() {
                           </p>
                         ) : (
                           <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() =>
+                                sendMessage({
+                                  type: "SET_INDEPENDENT_PLAYBACK",
+                                  user_id: participant.id,
+                                  enabled: !independentUsers.includes(participant.id),
+                                })
+                              }
+                              className="btn btn-ghost"
+                            >
+                              {independentUsers.includes(participant.id)
+                                ? "Follow host"
+                                : "Allow independent"}
+                            </button>
                             <button
                               onClick={() =>
                                 sendMessage({

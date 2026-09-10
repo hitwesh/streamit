@@ -32,3 +32,11 @@ def room_muted_users_key(room_code: str) -> str:
 
 def room_banned_users_key(room_code: str) -> str:
     return f"room:{room_code}:banned_users"
+
+
+def room_kicked_users_key(room_code: str) -> str:
+    return f"room:{room_code}:kicked_users"
+
+
+def room_independent_users_key(room_code: str) -> str:
+    return f"room:{room_code}:independent_users"

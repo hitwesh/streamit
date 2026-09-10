@@ -26,6 +26,10 @@ from common.redis_room_state import (
     mute_user,
     is_user_muted,
     ban_user,
+    kick_user,
+    is_user_kicked,
+    set_independent_playback,
+    is_independent_playback,
 )
 
 logger = logging.getLogger("sync.ws")
@@ -286,6 +290,11 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=4010)
             return
 
+        if await is_user_kicked(self.room_data["code"], self.user.id):
+            logger.warning("WS reject: user kicked | room=%s user_id=%s code=4011", self.room_code, self.user.id)
+            await self.close(code=4011)
+            return
+
         if not room["is_active"]:
             logger.warning("WS reject: room inactive | room=%s state=%s user_id=%s code=4005", self.room_code, room["state"], self.user.id)
             await self.close(code=4005)
@@ -498,6 +507,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 )
 
             if event_type == "KICK_USER":
+                await kick_user(self.room_data["code"], target_user_id)
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -508,9 +518,35 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
 
             return
 
+        if event_type == "SET_INDEPENDENT_PLAYBACK":
+            if not PermissionService.can_moderate(self.user, self.room_data):
+                await self.send_error("Only host can change playback permissions")
+                return
+            target_user_id = data.get("user_id")
+            if not target_user_id:
+                return
+            enabled = bool(data.get("enabled"))
+            await set_independent_playback(
+                self.room_data["code"], target_user_id, enabled
+            )
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "independent_playback_updated",
+                    "user_id": str(target_user_id),
+                    "enabled": enabled,
+                },
+            )
+            return
+
         # ---------------- PLAYBACK (HOST ONLY) ----------------
         if event_type in {"PLAY", "PAUSE", "SEEK"}:
-            if not PermissionService.can_control_playback(self.user, self.room_data):
+            can_control = PermissionService.can_control_playback(
+                self.user, self.room_data
+            ) or await is_independent_playback(
+                self.room_data["code"], self.user.id
+            )
+            if not can_control:
                 await self.send(text_data=json.dumps({
                     "type": "ERROR",
                     "code": "PERMISSION_DENIED",
@@ -532,18 +568,21 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 time,
             )
 
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "room_event",
-                    "event": {
-                        "type": "PLAYBACK_STATE",
-                        "is_playing": new_state["is_playing"],
-                        "time": new_state["time"],
-                        "version": new_state["version"],
-                    },
-                }
-            )
+            event = {
+                "type": "PLAYBACK_STATE",
+                "is_playing": new_state["is_playing"],
+                "time": new_state["time"],
+                "version": new_state["version"],
+            }
+            if await is_independent_playback(
+                self.room_data["code"], self.user.id
+            ):
+                await self.send(text_data=json.dumps(event))
+            else:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "room_event", "event": event},
+                )
             return
 
         # ---------------- PLAYER EVENTS ----------------
@@ -624,6 +663,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
             "is_private": event["is_private"],
             "entry_mode": event["entry_mode"],
             "is_chat_enabled": event["is_chat_enabled"],
+        }))
+
+    async def independent_playback_updated(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "INDEPENDENT_PLAYBACK",
+            "user_id": event["user_id"],
+            "enabled": event["enabled"],
         }))
 
     async def force_disconnect(self, event):

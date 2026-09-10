@@ -21,6 +21,7 @@ export type ClientEvent =
   | { type: "MUTE_USER"; user_id: string }
   | { type: "BAN_USER"; user_id: string }
   | { type: "KICK_USER"; user_id: string }
+  | { type: "SET_INDEPENDENT_PLAYBACK"; user_id: string; enabled: boolean }
 
 export type PlayerEventData =
   | { event: "ended"; currentTime: number; duration: number; progress: number }
@@ -39,6 +40,7 @@ export type ServerEvent =
   | { type: "HOST_RECONNECTED" }
   | { type: "ROOM_DELETED" }
   | { type: "ROOM_SETTINGS"; is_private: boolean; entry_mode: string | null; is_chat_enabled: boolean }
+  | { type: "INDEPENDENT_PLAYBACK"; user_id: string; enabled: boolean }
   | { type: "SYNC_CORRECTION"; time: number; version: number }
   | { type: "ERROR"; message: string; code?: string }
 

@@ -38,10 +38,17 @@ export default function VideoPlayer({
     const iframe = iframeRef.current
     if (!iframe) return
 
-    // Placeholder: sync will be wired once the player exposes a postMessage API.
-    // Current store values are retained for future control.
-    void is_playing
-    void time
+    iframe.contentWindow?.postMessage(
+      {
+        type: is_playing ? "STREAMIT_PLAY" : "STREAMIT_PAUSE",
+        time,
+      },
+      "https://watch.embed-api.stream"
+    )
+    iframe.contentWindow?.postMessage(
+      { type: "STREAMIT_SEEK", time },
+      "https://watch.embed-api.stream"
+    )
   }, [is_playing, time])
 
   if (!src) {

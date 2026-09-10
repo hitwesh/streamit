@@ -19,6 +19,22 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Persistent Moderation and Independent Playback (STABLE)
+
+### Fix
+- Kicked participants are now rejected on future WebSocket connections; banned participants remain rejected as before.
+- Added host-controlled independent playback permissions per participant.
+- Added generic `postMessage` playback commands for providers that implement the StreamIt player bridge.
+
+### Limitation
+- Embed API does not currently document or confirm support for the `STREAMIT_PLAY`, `STREAMIT_PAUSE`, and `STREAMIT_SEEK` messages, so exact iframe control remains provider-dependent.
+
+### Validation
+- Moderation, playback, and room tests pass.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Room Controls and Session Recovery (STABLE)
 
 ### Fix

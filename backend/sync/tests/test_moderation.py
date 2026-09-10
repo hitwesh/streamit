@@ -101,7 +101,7 @@ class ModerationTests(TransactionTestCase):
 
         await host_comm.disconnect()
 
-    async def test_kick_disconnects_but_allows_reconnect(self):
+    async def test_kick_disconnects_and_blocks_reconnect(self):
         host_comm = await self._connect(self.host)
         user_comm = await self._connect(self.user)
 
@@ -116,7 +116,7 @@ class ModerationTests(TransactionTestCase):
 
         await user_comm.disconnect()
 
-        # Reconnect should succeed
+        # Reconnect should be rejected
         token = AccessToken.for_user(self.user)
         new_comm = WebsocketCommunicator(
             application,
@@ -124,8 +124,7 @@ class ModerationTests(TransactionTestCase):
         )
         connected, _ = await new_comm.connect()
 
-        self.assertTrue(connected)
-        await new_comm.disconnect()
+        self.assertFalse(connected)
         await host_comm.disconnect()
 
     async def test_non_host_cannot_moderate(self):

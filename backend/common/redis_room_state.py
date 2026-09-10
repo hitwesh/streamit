@@ -13,6 +13,8 @@ from common.redis_keys import (
     chat_duplicate_key,
     room_muted_users_key,
     room_banned_users_key,
+    room_kicked_users_key,
+    room_independent_users_key,
 )
 
 RATE_LIMIT_COUNT = 5
@@ -209,6 +211,30 @@ async def is_user_banned(room_code: str, user_id: str) -> bool:
         room_banned_users_key(room_code),
         str(user_id),
     )
+
+
+async def kick_user(room_code: str, user_id: str):
+    client = get_redis_client()
+    await client.sadd(room_kicked_users_key(room_code), str(user_id))
+
+
+async def is_user_kicked(room_code: str, user_id: str) -> bool:
+    client = get_redis_client()
+    return await client.sismember(room_kicked_users_key(room_code), str(user_id))
+
+
+async def set_independent_playback(room_code: str, user_id: str, enabled: bool):
+    client = get_redis_client()
+    key = room_independent_users_key(room_code)
+    if enabled:
+        await client.sadd(key, str(user_id))
+    else:
+        await client.srem(key, str(user_id))
+
+
+async def is_independent_playback(room_code: str, user_id: str) -> bool:
+    client = get_redis_client()
+    return await client.sismember(room_independent_users_key(room_code), str(user_id))
 
 
 # ======================
