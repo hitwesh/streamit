@@ -5,6 +5,19 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Room Creation Schema Consistency (STABLE)
+
+### Fix
+- Restored the room media metadata fields required by the existing database schema.
+- New rooms now explicitly default to movie media with no season or episode, preventing PostgreSQL NULL constraint failures.
+- Recreated migration `0009_room_video_metadata` for fresh database setup.
+
+### Validation
+- Live login and room creation returned HTTP 200 and HTTP 201 respectively.
+- Django checks, migration checks, and room tests pass.
+
+---
+
 ## 2026-09-10 - Restore Embed API Playback (STABLE)
 
 ### Change

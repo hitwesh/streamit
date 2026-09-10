@@ -77,6 +77,9 @@ class Room(models.Model):
 
     video_provider = models.CharField(max_length=50)
     video_id = models.CharField(max_length=255)
+    video_media_type = models.CharField(max_length=10, default="movie")
+    video_season = models.PositiveIntegerField(null=True, blank=True)
+    video_episode = models.PositiveIntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)

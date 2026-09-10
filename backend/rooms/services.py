@@ -23,6 +23,9 @@ def create_room(*, host, is_private, entry_mode, genre):
         entry_mode=entry_mode if is_private else None,
         video_provider="",
         video_id="",
+        video_media_type="movie",
+        video_season=None,
+        video_episode=None,
     )
 
     raw_password = None
