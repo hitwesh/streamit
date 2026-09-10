@@ -5,6 +5,18 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - External Player Redirect Protection (STABLE)
+
+### Security
+- Sandboxed the Embed API iframe without top-navigation or popup permissions.
+- Added a Content Security Policy that allows frames only from `watch.embed-api.stream`.
+- Kept autoplay, fullscreen, encrypted media, and picture-in-picture permissions required by playback.
+
+### Validation
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Room Creation Schema Consistency (STABLE)
 
 ### Fix
