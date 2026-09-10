@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { guestLogin, login } from "@/lib/api"
@@ -19,17 +19,21 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState("")
   const [guestName, setGuestName] = useState("")
   const [loginError, setLoginError] = useState<string | null>(null)
+  const [loginLoading, setLoginLoading] = useState(false)
   const [guestError, setGuestError] = useState<string | null>(null)
 
   useEffect(() => {
     hydrate()
   }, [hydrate])
 
-  const handleLogin = async () => {
+  const handleLogin = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
     setLoginError(null)
+    setLoginLoading(true)
 
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setLoginError("Email and password required")
+      setLoginLoading(false)
       return
     }
 
@@ -47,6 +51,8 @@ export default function LoginPage() {
       router.push("/dashboard")
     } catch (error) {
       setLoginError(getErrorMessage(error))
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -106,7 +112,7 @@ export default function LoginPage() {
             parties.
           </p>
 
-          <div className="mt-6 space-y-3">
+          <form className="mt-6 space-y-3" onSubmit={handleLogin}>
             <input
               value={loginEmail}
               onChange={(event) => setLoginEmail(event.target.value)}
@@ -123,10 +129,14 @@ export default function LoginPage() {
             {loginError ? (
               <p className="text-xs text-red-400">{loginError}</p>
             ) : null}
-            <button onClick={handleLogin} className="btn btn-primary w-full">
-              Sign in
+            <button
+              type="submit"
+              className="btn btn-primary w-full"
+              disabled={loginLoading}
+            >
+              {loginLoading ? "Signing in..." : "Sign in"}
             </button>
-          </div>
+          </form>
 
           <div className="mt-6 flex items-center justify-between text-xs text-[color:var(--color-muted)]">
             <span>Need an account?</span>

@@ -5,6 +5,19 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Sign-in Form Submission Fix (STABLE)
+
+### Fix
+- Changed sign-in to use a native form submit handler with `preventDefault`.
+- Sign-in now works consistently from button clicks and the Enter key.
+- Added a disabled loading state to prevent duplicate login requests.
+
+### Validation
+- Live login endpoint responds correctly to invalid credentials.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - Signup Form Submission Fix (STABLE)
 
 ### Fix
