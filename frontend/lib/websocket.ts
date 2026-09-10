@@ -169,6 +169,12 @@ export function connectToRoom(roomCode: string, token: string): void {
     return
   }
 
+  // Cancel any pending reconnect to prevent spawning a duplicate socket
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+
   const storedToken = loadSession()?.token ?? token
   currentRoomCode = roomCode
   currentToken = storedToken

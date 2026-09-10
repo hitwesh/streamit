@@ -326,6 +326,13 @@ def delete_room_view(request):
 
     room.is_active = False
     room.save(update_fields=["is_active"])
+    room.mark_deleted()
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"room_{room.code}",
+        {"type": "room_deleted"},
+    )
 
     return Response({"status": "room_deleted"})
 

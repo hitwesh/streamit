@@ -124,6 +124,18 @@ async function refreshAccessToken(): Promise<string | null> {
   return data.access
 }
 
+// Singleton lock to prevent concurrent refresh requests from racing
+let refreshPromise: Promise<string | null> | null = null
+
+function refreshAccessTokenOnce(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
@@ -160,6 +172,8 @@ async function request<T>(
   if (!response.ok) {
     if (response.status === 401 && options.token && !hasRetried) {
       const refreshedToken = await refreshAccessToken()
+    if (response.status === 401 && activeToken && !hasRetried) {
+      const refreshedToken = await refreshAccessTokenOnce()
       if (refreshedToken) {
         return request(path, { ...options, token: refreshedToken }, true)
       }

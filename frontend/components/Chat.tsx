@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { sendMessage } from "@/lib/websocket"
 import { useRoomStore } from "@/store/roomStore"
 
@@ -19,6 +20,11 @@ export default function Chat({
       }),
     []
   )
+  const scrollEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    scrollEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
   const send = () => {
     const trimmed = message.trim()
@@ -64,6 +70,7 @@ export default function Chat({
             )
           })
         )}
+        <div ref={scrollEndRef} />
       </div>
 
       <div className="flex gap-2">

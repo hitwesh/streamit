@@ -19,10 +19,15 @@ export default function PlaybackControls({
 }) {
   const safeTime = Number.isFinite(currentTime) ? currentTime : 0
   const [seekValue, setSeekValue] = useState(Math.round(safeTime))
+  const [seekFocused, setSeekFocused] = useState(false)
 
   useEffect(() => {
     setSeekValue(Math.round(safeTime))
   }, [safeTime])
+    if (!seekFocused) {
+      setSeekValue(Math.round(safeTime))
+    }
+  }, [safeTime, seekFocused])
 
   return (
     <div className="control-deck flex flex-wrap items-center gap-3 p-3">
@@ -41,6 +46,8 @@ export default function PlaybackControls({
           step={1}
           value={seekValue}
           onChange={(event) => setSeekValue(Number(event.target.value) || 0)}
+          onFocus={() => setSeekFocused(true)}
+          onBlur={() => setSeekFocused(false)}
           onKeyDown={(event) => {
             if (event.key === "Enter") onSeek(Math.max(0, seekValue))
           }}

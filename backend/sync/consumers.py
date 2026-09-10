@@ -109,6 +109,14 @@ def get_recent_messages_by_room_id(room_id, limit=50):
 
 
 @database_sync_to_async
+def get_chat_enabled_by_room_id(room_id):
+    try:
+        return Room.objects.values_list("is_chat_enabled", flat=True).get(id=room_id)
+    except Room.DoesNotExist:
+        return False
+
+
+@database_sync_to_async
 def get_playback_state_by_room_id(room_id):
     from rooms.models import RoomPlaybackState
     state, _ = RoomPlaybackState.objects.get_or_create(room_id=room_id)
@@ -155,6 +163,9 @@ def update_host_watch_progress_by_room_id(room_id, user, time):
         media_type=room.video_provider,
         season=None,
         episode=None,
+        media_type=room.video_media_type,
+        season=room.video_season,
+        episode=room.video_episode,
         defaults={
             "timestamp": time,
         },
@@ -185,6 +196,9 @@ def update_watch_progress_by_room_id(
         media_type=room.video_provider,
         season=None,
         episode=None,
+        media_type=room.video_media_type,
+        season=room.video_season,
+        episode=room.video_episode,
         defaults={
             "timestamp": current_time,
             "duration": duration,
@@ -260,6 +274,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
         self.user = self.scope["user"]
+        self._accepted = False
 
         # 1️⃣ Auth check
         if not self.user.is_authenticated:
@@ -337,6 +352,7 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        self._accepted = True
         logger.info("WS accepted | room=%s user_id=%s role=%s", self.room_code, self.user.id, self.role)
 
         await increment_viewers(self.room_data["code"])
@@ -373,6 +389,9 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
+        if not self._accepted:
+            return
+
         if hasattr(self, "room_group_name"):
             if self.user.id == self.room_data["host_id"]:
                 await mark_host_disconnected_by_room_id(self.room_data["id"])
@@ -430,6 +449,8 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 return
 
             if not self.room_data["is_chat_enabled"]:
+            chat_enabled = await get_chat_enabled_by_room_id(self.room_data["id"])
+            if not chat_enabled:
                 await self.send_error("Chat is disabled in this room")
                 return
 
@@ -555,6 +576,13 @@ class RoomPresenceConsumer(AsyncWebsocketConsumer):
                 return
 
             is_playing = event_type == "PLAY"
+            if event_type == "SEEK":
+                current_state = await get_playback_state_by_room_id(
+                    self.room_data["id"]
+                )
+                is_playing = current_state["is_playing"]
+            else:
+                is_playing = event_type == "PLAY"
             time = data.get("time", 0)
 
             new_state = await update_playback_state_by_room_id(

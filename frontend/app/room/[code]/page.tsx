@@ -87,6 +87,9 @@ export default function RoomPage() {
     setRoomMeta(loadRoomMeta(roomCode))
   }, [roomCode])
 
+  const roomMetaRef = useRef(roomMeta)
+  roomMetaRef.current = roomMeta
+
   useEffect(() => {
     if (!roomCode || !token) return
 
@@ -97,6 +100,7 @@ export default function RoomPage() {
         setRoomDetail(detail)
 
         if (!roomMeta) {
+        if (!roomMetaRef.current) {
           const meta: RoomMeta = {
             room_id: detail.room_id,
             code: detail.code,
@@ -116,6 +120,7 @@ export default function RoomPage() {
       active = false
     }
   }, [roomCode, token, roomMeta])
+  }, [roomCode, token])
 
   useEffect(() => {
     if (!roomCode || !token || pendingApproval) return

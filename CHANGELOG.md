@@ -5,6 +5,57 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - Comprehensive Bug Fix Sweep (STABLE)
+
+### Fix
+
+#### Backend — Critical
+
+- **WatchProgress stored wrong `media_type`** (`consumers.py`): Both `update_host_watch_progress_by_room_id` and `update_watch_progress_by_room_id` used `room.video_provider` (string like `"embed-api"`) instead of `room.video_media_type` (string like `"movie"` or `"tv"`). This corrupted all WatchProgress records, making them unqueryable by the progress GET endpoint. Also populated `season`/`episode` as `None` instead of using the room's actual values. Fixed to use `room.video_media_type`, `room.video_season`, `room.video_episode`.
+
+- **SEEK incorrectly paused playback** (`consumers.py`): The expression `is_playing = event_type == "PLAY"` evaluates to `False` for `SEEK`, which caused every seek operation to broadcast `is_playing=False` and pause the video for all connected clients. Fixed: SEEK now reads the current `is_playing` state from the DB before updating, preserving play/pause state during seeks.
+
+#### Backend — Major
+
+- **Stale `is_chat_enabled` prevented chat toggle enforcement** (`consumers.py`): The consumer's `self.room_data["is_chat_enabled"]` was a snapshot from WebSocket connect time. When the host toggled chat off via the REST API, the consumer never saw the change — chat messages were still accepted server-side. Fixed: Chat messages now re-fetch `is_chat_enabled` from the DB on every chat message via a new `get_chat_enabled_by_room_id` helper.
+
+- **`delete_room_view` was incomplete** (`rooms/views.py`): Only set `is_active=False` without transitioning the room state to `DELETED` or broadcasting `ROOM_DELETED` to connected WebSocket clients. Connected guests remained in a zombie room. Fixed: Now calls `room.mark_deleted()` (which sets both state and `is_active`) and broadcasts `room_deleted` to the channel layer group.
+
+#### Backend — Moderate
+
+- **Viewer count decremented for rejected connections** (`consumers.py`): If a connection was rejected after `room_data` was set (banned, kicked, inactive, unapproved users), the `disconnect` handler still decremented the viewer counter and updated Redis state despite no increment happening. While self-correcting (negative values get cleaned up), it caused temporarily incorrect viewer counts. Fixed: Added `self._accepted` flag set after `accept()`; disconnect handler returns early if the connection was never accepted.
+
+#### Frontend — Major
+
+- **401 token refresh only worked with explicit `token` param** (`api.ts`): The retry condition `options.token && !hasRetried` bypassed refresh for API functions using the implicit `loadSession()?.token` fallback (e.g., `searchContent`). Changed to check the resolved `activeToken` instead.
+
+- **Concurrent token refresh race condition** (`api.ts`): Multiple simultaneous 401 failures each fired independent `/api/auth/token/refresh/` requests. With refresh token rotation, only the first succeeds — subsequent ones fail and could log the user out. Added a singleton Promise lock (`refreshAccessTokenOnce`) so concurrent 401s wait for the same refresh.
+
+#### Frontend — Moderate
+
+- **Chat did not auto-scroll** (`Chat.tsx`): No scroll-to-bottom behavior on new messages. Users had to manually scroll to see the latest messages. Added `scrollEndRef` with `scrollIntoView({ behavior: "smooth" })` triggered on message list changes.
+
+- **`roomMeta` in useEffect deps caused infinite re-fetch loop** (`room/[code]/page.tsx`): The `getRoomDetail` effect listed `roomMeta` in its dependency array but also sets `roomMeta` on success, creating an infinite cycle. Changed to use a `useRef` to read the current value without re-triggering.
+
+- **Seek input overwritten by playback time updates** (`PlaybackControls.tsx`): A `useEffect` continuously synced the seek input value to `safeTime`. While the video plays, any user input in the seek field was immediately overwritten. Added focus tracking (`onFocus`/`onBlur`) — updates are suppressed while the input is focused.
+
+- **Duplicate WebSocket from reconnect timer race** (`websocket.ts`): `connectToRoom` checked `if (socket) return` but didn't clear `reconnectTimer`. A pending reconnect timer could fire after a new explicit connection, spawning a duplicate socket. Added `clearTimeout(reconnectTimer)` at the start of `connectToRoom`.
+
+### Behavior
+
+- SEEK preserves play/pause state — this is the expected user experience. Seeking while playing continues playing; seeking while paused stays paused.
+- Chat toggle enforcement is now real-time — disabling chat immediately blocks new messages server-side, not just in the UI.
+- Room deletion is now authoritative — connected guests receive `ROOM_DELETED` and the room transitions to `DELETED` state.
+- Token refresh is now resilient — works for all API calls (not just those with explicit tokens) and handles concurrent failures gracefully.
+
+### Validation
+
+- All 51 backend tests pass (`python manage.py test`).
+- Frontend production build passes (`npx next build`).
+- No broken imports, no circular dependencies, no new dependencies added.
+
+---
+
 ## 2026-09-10 - Embed API Sandbox Compatibility (STABLE)
 
 ### Fix
