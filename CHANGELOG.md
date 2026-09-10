@@ -5,6 +5,19 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
+## 2026-09-10 - CSP Backend Connection Fix (STABLE)
+
+### Fix
+- Allowed frontend REST and WebSocket connections to the local Django backend in the Content Security Policy.
+- Preserved the external player frame restriction and redirect protection.
+
+### Validation
+- Served CSP includes API and WebSocket `connect-src` entries.
+- Frontend-origin login returned HTTP 200.
+- Frontend lint and production build pass.
+
+---
+
 ## 2026-09-10 - External Player Redirect Protection (STABLE)
 
 ### Security
