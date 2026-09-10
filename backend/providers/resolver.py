@@ -4,10 +4,6 @@ from providers.embed_api import (
     build_embed_api_source,
     derive_embed_api_url,
 )
-from providers.superembed import (
-    build_superembed_source,
-    derive_superembed_url,
-)
 from providers.base import PlaybackSource
 
 
@@ -27,22 +23,11 @@ def resolve_playback_source(
             episode=episode,
         )
 
-    if provider == "superembed":
-        return build_superembed_source(
-            media_type=media_type,
-            external_id=external_id,
-            season=season,
-            episode=episode,
-        )
-
     raise ValueError(f"Unsupported playback provider: {provider}")
 
 
 def derive_embed_url(source: PlaybackSource) -> str:
     if source.provider == "embed-api":
         return derive_embed_api_url(source)
-
-    if source.provider == "superembed":
-        return derive_superembed_url(source)
 
     raise ValueError(f"No embed URL resolver for provider: {source.provider}")

@@ -1,11 +1,9 @@
 from providers.base import BaseProvider
 from providers.embed_api import EmbedApiProvider
-from providers.superembed import SuperEmbedProvider
 
 
 PROVIDERS: dict[str, BaseProvider] = {
     "embed-api": EmbedApiProvider(),
-    "superembed": SuperEmbedProvider(),
 }
 
 

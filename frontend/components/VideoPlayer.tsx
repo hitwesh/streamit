@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useCallback } from "react"
 import { useRoomStore } from "@/store/roomStore"
 import type { PlayerEventData } from "@/lib/websocket"
-import { API_BASE_URL } from "@/lib/api"
 
 interface VideoPlayerProps {
   provider: string
@@ -51,15 +50,6 @@ export default function VideoPlayer({
       }
 
       return `https://watch.embed-api.stream/embed/movie/${videoId}`
-    }
-
-    if (provider === "superembed") {
-      const base = `${API_BASE_URL}/api/rooms/player/?video_id=${videoId}&tmdb=1`
-      if (mediaType === "tv") {
-        if (!season || !episode) return ""
-        return `${base}&s=${season}&e=${episode}`
-      }
-      return base
     }
 
     return ""

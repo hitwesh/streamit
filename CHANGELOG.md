@@ -5,27 +5,7 @@ Git history tracks *what* changed; this file tracks *why*, *how*, and *what must
 
 ---
 
-## 2026-09-10 - Switch Video Player to SuperEmbed (multiembed.mov) (STABLE)
-
-### Changed
-- **New Video Provider — SuperEmbed**: Replaced `embed-api.stream` with `multiembed.mov` (SuperEmbed) as the active video provider. Room search results now return `provider: "superembed"` and room media is stored with the `superembed` provider ID.
-- **Backend `providers/superembed.py`** [NEW]: New provider adapter. Builds iframe URLs:
-  - Movie: `https://multiembed.mov/?video_id={tmdb_id}&tmdb=1`
-  - TV Episode: `https://multiembed.mov/?video_id={tmdb_id}&tmdb=1&s={season}&e={episode}`
-- **Backend `providers/registry.py`**: Registered `superembed` alongside `embed-api`.
-- **Backend `providers/resolver.py`**: Extended build and derive paths for `superembed`.
-- **Backend `rooms/views.py`**: Search now uses `get_provider("superembed")`.
-- **Frontend `VideoPlayer.tsx`**: Added `superembed` branch in `src` URL builder. Sync is WebSocket-driven only (no postMessage from `multiembed.mov`).
-- **Frontend `next.config.ts`**: CSP `frame-src`/`child-src` now allows `multiembed.mov`, `*.multiembed.mov`, `getsuperembed.link`, `*.getsuperembed.link`.
-
-### Validation
-- Frontend build: zero TypeScript errors.
-- All 51 backend tests pass.
-
----
-
 ## 2026-09-10 - Realtime Media Broadcast, Compact Search & Safe Room Deletion (STABLE)
-
 
 ### Fix
 - **Realtime Media Broadcast**: When the host selects a title or updates room media via `room_source_view`, the backend now broadcasts `room_source_updated` over the channel layer. All connected participants immediately receive `ROOM_MEDIA_CHANGED` and update their player in real time, eliminating the need to manually refresh the browser.
